@@ -1,4 +1,4 @@
-#[ic_cdk::query]
-fn greet(name: String) -> String {
-    format!("Hello, {}!", name)
-}
+
+mod fr;
+mod hash_to_field;
+mod witness;
