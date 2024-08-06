@@ -1,0 +1,17 @@
+{
+  "canisters": {
+    "plonk_verifier_on_icp_backend": {
+      "candid": "src/plonk_verifier_on_icp_backend/plonk_verifier_on_icp_backend.did",
+      "package": "plonk_verifier_on_icp_backend",
+      "type": "rust"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
