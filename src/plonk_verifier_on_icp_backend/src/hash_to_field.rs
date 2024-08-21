@@ -111,3 +111,27 @@ fn expand_msg_xmd(msg: &[u8], dst: &[u8], n: usize) -> Result<Vec<u8>, Box<dyn E
 }
 
 
+#[cfg(test)]
+mod test{
+    use super::*;
+    
+    #[test]
+    fn test_hash_to_field_1() {
+        let mut hasher = HashToField::new(b"BSB22-Plonk");
+        let bytes = hex::decode("19fcec892a59a9032fcbacc2aea4576819e265dd54ae49d57d17200bb33134e301f3ba06fdccf993b19c56b49875cac18d385eb53c651d53587e4548279b5c2a").unwrap();
+        hasher.write(&bytes).unwrap();
+        let res = hasher.sum();
+        let fr = fr_from_gnark_bytes(&res);
+        assert_eq!("2161252824825955644621487721081736561973572532081413859751628043458274122616", fr.to_string());
+    }
+
+    #[test]
+    fn test_hash_to_field_2() {
+        let mut hasher = HashToField::new(b"BSB22-Plonk");
+        let bytes = hex::decode("22312c83811c0d51c0a0655b0412909d605dabd8650dfb965f5d94a4db5edbe106799e4bff042d46d2ebb3c8404a15b34ce0ccf5b39ae3e67b947c457373c76e").unwrap();
+        hasher.write(&bytes).unwrap();
+        let res = hasher.sum();
+        let fr = fr_from_gnark_bytes(&res);
+        assert_eq!("11593280986460652115679837107476641214342495810443230158187475124137133584283", fr.to_string());
+    }
+}
