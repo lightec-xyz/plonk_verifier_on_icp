@@ -110,6 +110,13 @@ impl PartialEq for LineEvaluationAff {
 }
 
 impl VerifyingKey {
+    /*  
+        have_lines= true, if this vk has lines
+        have_lines= false, if this vk does not have lines. 
+        lines are not necessary for verify, normally gnark will output a vk with lines, which is 32768 bytes.
+        remove the lines for vk reside in canister for saving cycles.
+     */
+
     pub fn from_gnark_bytes(data: &[u8], have_lines : bool) -> Result<Self, Box<dyn Error>> {
         let mut reader = data; // Using slice directly
 
@@ -255,7 +262,7 @@ impl VerifyingKey {
         Ok(vk)
     }
 
-    //to_gnark_bytes_wo_lines, return data without lines
+    //to_gnark_bytes_wo_lines, return vk without lines, remove lines for saving gas 
     pub fn to_gnark_bytes_wo_lines(data: &[u8], have_lines : bool) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut qcp_len_bytes = [0u8;4];
         qcp_len_bytes.copy_from_slice(&data[QCP_LEN_START_INDEX..QCP_LEN_END_INDEX]);
@@ -738,8 +745,8 @@ mod test {
 
 
     // #[test]
-    // fn test_conver_redeem_vk_to_vk_wo_lines() {
-    //     let mut f = File::open("src/test_data/redeem.vk").unwrap_or_else(|e| {
+    // fn test_convert_redeem_vk_to_vk_wo_lines() {
+    //     let mut f = File::open("src/test_data/redeem_beta1.vk").unwrap_or_else(|e| {
     //         panic!("open file error: {}", e);
     //     });
 
@@ -747,7 +754,7 @@ mod test {
     //     f.read_to_end(&mut buf).unwrap();
     //     let bytes_wo_lines = VerifyingKey::to_gnark_bytes_wo_lines(&buf, true).unwrap();
 
-    //     let mut new_f = File::create("src/test_data/redeem_wo_lines.vk").unwrap();
+    //     let mut new_f = File::create("src/test_data/redeem_beta1_wo_lines.vk").unwrap();
 
     //     new_f.write(&bytes_wo_lines).unwrap();
     //     new_f.flush().unwrap()

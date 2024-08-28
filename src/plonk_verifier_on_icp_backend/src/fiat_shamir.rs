@@ -1,3 +1,4 @@
+// This file is rust version of Consensys/ganrk/std/fiat-shamir/transcript.go 
 use std::collections::HashMap;
 use std::fmt;
 use std::error::Error;
@@ -145,7 +146,7 @@ mod test {
     use sha2::{Digest, Sha256, Sha512};
 
     #[test]
-    fn test_fiat_shamir_simple() {
+    fn test_fiat_shamir_1() {
         let mut transcript = Transcript::new(
             Box::new(Sha256::new()),
             vec!["gamma", "beta", "alpha", "zeta"],
@@ -180,7 +181,7 @@ mod test {
     }
 
     #[test]
-    fn test_fiat_shamir_complex_1() {
+    fn test_fiat_shamir_2() {
         /*
         vk.S0: 097c8a80aeec562a6b4abc29a019eec113192cb6c84f59beda5ddf3ce9c78ed80053bdf2cd5794fcc2b27919f84908cffcc0a897b32dce1324fc9ef61c26a206
         vk.S1: 1ae06afadef57a6e844f9a0fe62711abfa53d9132e4656fb3002d8c9ac0e7e6417755ec00eaf2e18a5c0aee47f6c8c5bfb57564edad465fbc67c3367bf25802e
@@ -270,7 +271,7 @@ mod test {
     }
 
     #[test]
-    fn test_fiat_shamir_complex_2() {
+    fn test_fiat_shamir_3() {
         /*
         vk.S0: 097c8a80aeec562a6b4abc29a019eec113192cb6c84f59beda5ddf3ce9c78ed80053bdf2cd5794fcc2b27919f84908cffcc0a897b32dce1324fc9ef61c26a206
         vk.S1: 1ae06afadef57a6e844f9a0fe62711abfa53d9132e4656fb3002d8c9ac0e7e6417755ec00eaf2e18a5c0aee47f6c8c5bfb57564edad465fbc67c3367bf25802e

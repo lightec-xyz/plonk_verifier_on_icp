@@ -4,6 +4,13 @@ use ark_std::io::Read;
 use crate::fr::*;
 
 pub struct PublicWitness{}
+/*
+    in gnark, witness is composited as the flollowing
+
+    | public | secret | vector |
+
+*/
+
 
 impl PublicWitness {
     pub fn from_gnark_bytes(data: &[u8]) -> Result<Vec<Fr>, Box<dyn Error>> {
