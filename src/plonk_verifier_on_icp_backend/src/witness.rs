@@ -4,6 +4,15 @@ use ark_std::io::Read;
 use crate::fr::*;
 
 pub struct PublicWitness{}
+/*
+    in gnark@BN254, witness is composited as the flollowing
+
+    | number of public |  4 bytes  |
+    | number of sceret |  4 bytes  |
+    | number of vector |  4 bytes  |
+    | vector of fr     |  32 bytes for each |
+
+*/
 
 impl PublicWitness {
     pub fn from_gnark_bytes(data: &[u8]) -> Result<Vec<Fr>, Box<dyn Error>> {

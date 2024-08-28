@@ -1,6 +1,8 @@
 
 use sha2::Sha256;
+use std::hash::Hasher;
 use std::io::{self, Write};
+// use ark_ff::field_hashers::{DefaultFieldHasher, HashToField};
 use ark_bn254::Fr;
 use digest::{Digest};
 use digest::core_api::BlockSizeUser;
@@ -10,26 +12,26 @@ use crate::fr::{fr_from_gnark_bytes, fr_to_gnark_bytes};
 
 const BYTE_SIZE:usize = 32;
 
-pub(crate) struct HashToField {
+pub struct HashToField {
     domain: Vec<u8>,
     to_hash: Vec<u8>,
 }
 
 
 impl HashToField {
-    pub(crate) fn new(domain_separator: &[u8]) -> Self {
+    pub fn new(domain_separator: &[u8]) -> Self {
         HashToField {
             domain: domain_separator.to_vec(),
             to_hash: Vec::new(),
         }
     }
 
-    pub(crate) fn sum(&mut self) -> Vec<u8> {
+    pub fn sum(&mut self) -> Vec<u8> {
         let fr = hash_to_field(&self.to_hash, &self.domain, 1).unwrap();
         fr_to_gnark_bytes(&fr[0])
     }
 
-    pub(crate) fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.to_hash.clear();
     }
 }
@@ -109,6 +111,7 @@ fn expand_msg_xmd(msg: &[u8], dst: &[u8], n: usize) -> Result<Vec<u8>, Box<dyn E
     let res = uniform_bytes[0..n].to_vec();
     Ok(res)
 }
+
 
 
 #[cfg(test)]

@@ -1,5 +1,9 @@
 
 mod fr;
 mod point;
-mod hash_to_field;
+mod proof;
+mod vk;
+mod fiat_shamir;
 mod witness;
+mod hash_to_field;
+
