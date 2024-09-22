@@ -386,10 +386,237 @@ pub fn kzg_divide_polynomial_by_x_minus_a(f: &[Fr], fa: &Fr, a : &Fr) -> Result<
     Ok(f_copy[1..].to_vec())    
 }
 
+
+
 #[cfg(test)]
-mod test {
+mod tests {
+    use std::str::FromStr;
+    use ark_bn254::Fq;
+    // use std::vec;
     use super::*;
+    use std::fs::File;
+    use std::io::Write;
 
-    //TODO: add test cases
+    #[test]
+    fn test_kzg_divide_polynomial_by_x_minus_a() {
+        let size = 10;
+        let mut coeffs = Vec::with_capacity(size);
 
+        coeffs.push(Fr::from(567));
+        for i in 1..size {
+            coeffs.push(Fr::from((567+i) as u64));
+        }
+
+        let fa = Fr::from(581807978777675747367i128);
+        let a = Fr::from(100);
+
+        let result = kzg_divide_polynomial_by_x_minus_a(&coeffs, &fa, &a).unwrap();
+        assert_eq!("5818079787776757468", result[0].to_string());
+        assert_eq!("58180797877767569", result[1].to_string());
+        assert_eq!("581807978777670", result[2].to_string());
+        assert_eq!("5818079787771", result[3].to_string());
+        assert_eq!("58180797872", result[4].to_string());
+        assert_eq!("581807973", result[5].to_string());
+        assert_eq!("5818074", result[6].to_string());
+        assert_eq!("58175", result[7].to_string());
+        assert_eq!("576", result[8].to_string());
+    }
+
+    #[test]
+    fn test_fold_proof() {
+        let digest_str :Vec<Vec<&str>> = vec![
+            vec!["19439843421331868731048920761041485100311316113639113728763517607290880888561", "3962135465877614200711446361696500777806926945245380960178027903417523424360"],
+            vec!["21371011874295022104212298179491547185152296099547976752666827902737047458623", "13078528585400863682104670653299997747955611433236040645936738688644282353393"],
+            vec!["21331244228972098394430934304779976416162120107036581448523649300709636631486", "14797230170318974213844904900297672643450778206092542653116270742759988348307"],
+            vec!["17732485047809477074325676591722341408702792534757986188827300216336432676968", "14269113617971571947582525955859337143953875150259695542094936085650706968805"],
+            vec!["2513531450779741774381166738397529229903825310877217742340791263387573843764", "10514915900118247345163197169314344375635384431487090493437650563455935051211"],
+            vec!["4290860583572509627464577404645192107154708027355374043132381799101413953240", "147959282368291695976176804501251963707900737478195501167604460443637555718"],
+            vec!["12156646154255023419676968282873543092370571330830097518462231970884835245668", "10610570566006993286673885485482428354276799132634670696393883549563563114542"]
+        ];
+
+        let h_str = vec!["876707076371717127069125978328654668655341628655473206819622065236257595145", "460814277655693737205039146672204997651517943497740039146393067657050178594"];
+
+        let claim_vals_str = vec![
+            "15054180778610820829376937596011358865784096266639273490438236811742655217416", "205123322307186165413938191562039325076039399890843400056961877316720984660",
+            "2657983629575768070030820300920548932958782609314604576267592987113419935400",
+            "986081019562346864761624081500574543516391948406973761258846090957496445562",
+            "10532170807698316814599792458239876118966025241330039635050142298206911770996",
+            "11411724786298094112809192269724475809258068421681668314283962582687360626562",
+            "13583614823749895836805239287126128354018130769216579522978891999424168496887"
+        ];
+
+        let point_str = "428996195638157125664800467491845848268572530814052950149558609155640812651";
+
+        let data_transcript_str = vec!["05d2f29bf53fd8ce5361e6ea3784e801ac0c4a3a8362efc518d6361af4212e47"];
+
+        struct GnarkPoint {
+            big_x: String,
+            big_y: String,
+        }
+
+        let ganrk_points: Vec<GnarkPoint> = digest_str
+        .iter()
+        .map(|vec| GnarkPoint {
+            big_x: vec[0].to_string(),
+            big_y: vec[1].to_string(),
+        })
+        .collect();
+    
+        let mut digests = Vec::with_capacity(ganrk_points.len());
+        for (i, point) in ganrk_points.iter().enumerate() {
+            let x = BigUint::from_str(&point.big_x).unwrap();
+            let y = BigUint::from_str(&point.big_y).unwrap();
+
+            let digest = G1Affine::new(Fq::from(x), Fq::from(y));
+            digests.push(digest);
+        }
+
+        let h_x = BigUint::from_str(&h_str[0]).unwrap();
+        let h_y = BigUint::from_str(&h_str[1]).unwrap();
+        let h = G1Affine::new(Fq::from(h_x), Fq::from(h_y));
+
+        let claim_vals = claim_vals_str
+        .iter()
+        .map(|x| Fr::from(BigUint::from_str(x).unwrap()))
+        .collect::<Vec<Fr>>();
+
+        let batch_opening_proof = BatchOpeningProof {
+            h:h,
+            claimed_values:claim_vals,
+        };
+        
+        let point = Fr::from(BigUint::from_str(&point_str).unwrap());
+
+        let data_transcript = data_transcript_str
+        .iter()
+        .map(|x| hex::decode(x).unwrap())
+        .collect::<Vec<Vec<u8>>>();
+
+       let(opening_proof, digest)  = fold_proof(&digests,  &batch_opening_proof, point, Some(data_transcript)).unwrap();
+       assert_eq!("(20263577364888023503226768230526337280204089690127349362914132838218371276794, 16930668638835727420546454921753874079894058376243462449981829277079553144966)", digest.to_string());
+       assert_eq!("(876707076371717127069125978328654668655341628655473206819622065236257595145, 460814277655693737205039146672204997651517943497740039146393067657050178594)", opening_proof.h.to_string());
+       assert_eq!("19674270539144290625731309089172697973090844743107571163541639124063474299762", opening_proof.claimed_value.to_string());
+
+    }
+
+    #[test]
+    fn test_derive_randomess() {
+        let mut vk_file = File::open("src/test_data/cubic.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+    
+        let mut buf = vec![];
+        vk_file.read_to_end(&mut buf).unwrap();
+        let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+
+        let mut proof_file = File::open("src/test_data/cubic_compressed_proof.proof").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        proof_file.read_to_end(&mut buf).unwrap();
+        let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
+
+        let mut transcript = Transcript::new(
+            Box::new(Sha256::new()),
+            vec!["gamma", "beta", "alpha", "zeta"],
+        );
+
+        let public_inputs = vec![Fr::from(35)];
+
+        bind_public_data(&mut transcript, "gamma", &vk, public_inputs).unwrap();
+        let gamma = derive_randomness(&mut transcript, "gamma", Some(vec![proof.lro[0], proof.lro[1], proof.lro[2]])).unwrap();
+        assert_eq!("13175412526922964177080897496541576850519188848052084205935292988061649913666", gamma.to_string());
+
+        let beta = derive_randomness(&mut transcript, "beta", None).unwrap();
+        assert_eq!("4757834056648670749114983047853294034164989321973894378345768017701699151115", beta.to_string());
+
+        let mut alpha_deps: Vec<G1Affine> = Vec::with_capacity(proof.bsb22_commitments.len()+1);
+        for i in 0..proof.bsb22_commitments.len() {
+            alpha_deps.push(proof.bsb22_commitments[i]);
+        }
+        alpha_deps.push(proof.z);
+        let alpha = derive_randomness(&mut transcript, "alpha", Some(alpha_deps)).unwrap();
+        assert_eq!("2641563643757307952281786817189485924276511397256432725904865976110150806673", alpha.to_string());
+
+        let zeta = derive_randomness(&mut transcript, "zeta",Some(vec![proof.h[0], proof.h[1],  proof.h[2]])).unwrap();
+        assert_eq!("428996195638157125664800467491845848268572530814052950149558609155640812651", zeta.to_string());
+    }
+
+
+    #[test]
+    fn test_verify_cubic_compressed_proof_pass() {
+        let mut vk_file = File::open("src/test_data/cubic.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+    
+        let mut buf = vec![];
+        vk_file.read_to_end(&mut buf).unwrap();
+        let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+
+        let mut proof_file = File::open("src/test_data/cubic_compressed_proof.proof").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        proof_file.read_to_end(&mut buf).unwrap();
+        let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
+
+        let mut wit_file = File::open("src/test_data/cubic_public_witness.wtns").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        wit_file.read_to_end(&mut buf).unwrap();
+        let public_witness = PublicWitness::from_gnark_bytes(&buf).unwrap();
+   
+
+        let result = verify(&proof, &vk, &public_witness).unwrap();
+        assert_eq!(true, result);
+    }
+
+
+    #[test]
+    #[should_panic(expected = "claimed_quotient_eval != linearized_polynomial_zeta_eval")]
+    fn test_verify_cubic_compressed_proof_fail() {
+        let mut vk_file = File::open("src/test_data/cubic.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+    
+        let mut buf = vec![];
+        vk_file.read_to_end(&mut buf).unwrap();
+        let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+
+        let mut proof_file = File::open("src/test_data/cubic_compressed_proof.proof").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        proof_file.read_to_end(&mut buf).unwrap();
+        let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
+        let public_inputs = vec![Fr::from(36)];
+
+        let result = verify(&proof, &vk, &public_inputs).unwrap();
+        assert_eq!(true, result);
+    }
+
+
+    #[test]
+    fn test_verify_cubic_uncompressed_proof_pass() {
+        let mut vk_file = File::open("src/test_data/cubic.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+    
+        let mut buf = vec![];
+        vk_file.read_to_end(&mut buf).unwrap();
+        let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+
+        let mut proof_file = File::open("src/test_data/cubic_uncompressed_proof.proof").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+
+        let mut buf = vec![];
+        proof_file.read_to_end(&mut buf).unwrap();
+        let proof = Proof::from_uncompressed_gnark_bytes(&buf).unwrap();
+        let public_inputs = vec![Fr::from(35)];
+
+        let result = verify(&proof, &vk, &public_inputs).unwrap();
+        assert_eq!(true, result);
+    }
 }
