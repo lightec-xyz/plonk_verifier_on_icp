@@ -1,15 +1,13 @@
-use ark_bn254::{Config, Fq, G1Affine, G2Affine};
+use ark_bn254::{Fq, G1Affine, G2Affine};
 use ark_ec::{
-    bn::{self, Bn, BnConfig, TwistType},
-    short_weierstrass::SWFlags,
     AffineRepr,
 };
-use ark_ff::{BigInteger, Field, PrimeField};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
-use std::cmp::{Ord, Ordering, PartialOrd};
+use ark_ff::{BigInteger, PrimeField};
+use ark_serialize::{CanonicalDeserialize, SerializationError};
+use std::cmp::{Ord, Ordering};
 use std::error::Error;
-use std::ops::{Add, Div, Mul, Neg, Sub};
-use std::{any::Any, str::FromStr};
+use std::ops::Neg;
+
 
 //reference github.com/consensys/gnark-crypto/ecc/bn254/marshal.go
 const GNARK_MASK: u8 = 0b11 << 6;
@@ -166,6 +164,9 @@ pub fn gnark_compressed_x_to_g2_point(buf: &[u8]) -> Result<G2Affine, Box<dyn Er
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::{str::FromStr};
+    use ark_serialize::CanonicalSerialize;
+
 
     #[test]
     fn test_g1_generator() {
