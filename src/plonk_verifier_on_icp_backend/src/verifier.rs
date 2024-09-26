@@ -1,6 +1,6 @@
 use crate::fr::*;
 use crate::fiat_shamir::*;
-use crate::hash_to_field;
+// use crate::hash_to_field;
 use crate::point::*;
 use crate::proof::*;
 use crate::vk::*;
@@ -395,7 +395,6 @@ mod tests {
     // use std::vec;
     use super::*;
     use std::fs::File;
-    use std::io::Write;
 
     #[test]
     fn test_kzg_divide_polynomial_by_x_minus_a() {
