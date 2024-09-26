@@ -1,10 +1,8 @@
 
 use sha2::Sha256;
-use std::hash::Hasher;
 use std::io::{self, Write};
-// use ark_ff::field_hashers::{DefaultFieldHasher, HashToField};
 use ark_bn254::Fr;
-use digest::{Digest};
+use digest::Digest;
 use digest::core_api::BlockSizeUser;
 use std::error::Error;
 
