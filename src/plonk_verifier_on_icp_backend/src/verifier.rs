@@ -78,8 +78,6 @@ pub fn verify(proof:&Proof, vk:&VerifyingKey, public_witness:&[Fr]) -> Result<bo
         }
     }
 
-    let nb_buf = 32;
-
     for i in 0..vk.commit_constraint_indexes.len() {
         let mut hasher = HashToField::new(b"BSB22-Plonk");
         let bytes = ark_g1_to_gnark_unompressed_bytes(&proof.bsb22_commitments[i])?;
@@ -362,7 +360,7 @@ pub fn kzg_derive_gamma(fr : Fr, digests: &[G1Affine], claimed_values : &[Fr], d
         };
     }
  
-    let mut bytes: Vec<u8> = transcript.compute_challenge("gamma")?;
+    let bytes: Vec<u8> = transcript.compute_challenge("gamma")?;
     let v = BigUint::from_bytes_be(&bytes);
     let fr = Fr::from(v);
     Ok(fr)
@@ -462,7 +460,7 @@ mod tests {
         .collect();
     
         let mut digests = Vec::with_capacity(ganrk_points.len());
-        for (i, point) in ganrk_points.iter().enumerate() {
+        for (_, point) in ganrk_points.iter().enumerate() {
             let x = BigUint::from_str(&point.big_x).unwrap();
             let y = BigUint::from_str(&point.big_y).unwrap();
 

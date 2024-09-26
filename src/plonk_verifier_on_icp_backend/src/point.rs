@@ -1042,7 +1042,7 @@ mod test {
             })
             .collect();
 
-        for (i, point) in ganrk_points.iter().enumerate() {
+        for (_, point) in ganrk_points.iter().enumerate() {
             let ganrk_x_bytes = hex::decode(&point.compreesed_x).unwrap();
             let p = gnark_compressed_x_to_g1_point(&ganrk_x_bytes).unwrap();
             let big_x = p.x().unwrap().into_bigint().to_string();

@@ -209,7 +209,7 @@ impl Proof {
         let z_shifted_h_commit = gnark_uncompressed_bytes_to_g1_point(&z_shifted_h_bytes)?;
 
         let mut bsb22_commit_values = Vec::with_capacity(bsb22_commit_len);
-        for i in 0..bsb22_commit_len {
+        for _ in 0..bsb22_commit_len {
             let mut tmp32 = [0u8; 32];
             reader.read_exact(&mut tmp32)?;
             let value =fr_from_gnark_bytes(&tmp32);

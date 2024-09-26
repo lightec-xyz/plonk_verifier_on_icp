@@ -619,7 +619,7 @@ mod test {
 
         let s = String::from("424296cb2b8cfdaef5155460e87a503ab2f420af28021aa5250dcc96114a88b2a2e4ce6c5109cb9c344eedec1511811593b32cbece5b7b10038ffca69c0a5ef2226fd090eb1eafe6c704ce873ed0973c893e4c1456c6a6d823b6b284db30ddbe18ee7ff96e1a14b8eaec745f804d449a02c55557e942602d1646d17d6053a61b");
 
-        let mut bytes_vec = hex::decode(&s.clone()).unwrap();
+        let bytes_vec = hex::decode(&s.clone()).unwrap();
         assert_eq!(128, bytes_vec.len());
 
         // println!("length: {}", bytes_vec.len());
