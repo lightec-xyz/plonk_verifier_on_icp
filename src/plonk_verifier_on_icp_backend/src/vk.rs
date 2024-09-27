@@ -282,7 +282,7 @@ impl VerifyingKey {
     }
 
     //test 2 vk equal without lines
-    fn eq_wo_lines(&self, other: &Self) -> bool {
+    pub fn eq_wo_lines(&self, other: &Self) -> bool {
         self.size == other.size &&
         self.size_inv == other.size_inv &&
         self.generator == other.generator &&
@@ -718,6 +718,21 @@ mod test {
     }
 
     #[test]
+    fn test_compare_vk_with_vk_wo_lines() {
+        let mut vk_file = File::open("src/test_data/cubic.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+    
+        let mut buf = vec![];
+        vk_file.read_to_end(&mut buf).unwrap();
+        let vk1 = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+        
+        let buf_wo_lines = VerifyingKey::to_gnark_bytes_wo_lines(&buf, true).unwrap();
+        let vk2 = VerifyingKey::from_gnark_bytes(&buf_wo_lines, false).unwrap();
+        assert_eq!(true,  vk1.eq_wo_lines(&vk2));
+    }
+
+    #[test]
     fn test_read_redeem_vk() {
         let mut f1 = File::open("src/test_data/redeem_beta1.vk").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
@@ -743,6 +758,7 @@ mod test {
 
     // #[test]
     // fn test_convert_redeem_vk_to_vk_wo_lines() {
+    //     use ark_serialize::Write;
     //     let mut f = File::open("src/test_data/redeem_beta1.vk").unwrap_or_else(|e| {
     //         panic!("open file error: {}", e);
     //     });

@@ -19,7 +19,7 @@ use ark_std::{One, Zero};
 
 
 //verify the gnark proof generated in rust
-pub fn verify(proof:&Proof, vk:&VerifyingKey, public_witness:&[Fr]) -> Result<bool, Box<dyn Error>> {
+pub fn verify(vk:&VerifyingKey, proof:&Proof, public_witness:&[Fr]) -> Result<bool, Box<dyn Error>> {
     if proof.bsb22_commitments.len() != vk.qcp.len() {
         return Err("bsb22_commitments.len() != qcp.len()".into())
     }
@@ -565,7 +565,7 @@ mod tests {
         let public_witness = PublicWitness::from_gnark_bytes(&buf).unwrap();
    
 
-        let result = verify(&proof, &vk, &public_witness).unwrap();
+        let result = verify(&vk, &proof, &public_witness).unwrap();
         assert_eq!(true, result);
     }
 
@@ -589,7 +589,7 @@ mod tests {
         let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
         let public_inputs = vec![Fr::from(36)];
 
-        let result = verify(&proof, &vk, &public_inputs).unwrap();
+        let result = verify(&vk, &proof, &public_inputs).unwrap();
         assert_eq!(true, result);
     }
 
@@ -602,7 +602,12 @@ mod tests {
     
         let mut buf = vec![];
         vk_file.read_to_end(&mut buf).unwrap();
+            //     let mut buf = vec![];
+    //     f.read_to_end(&mut buf).unwrap();
+    //     let bytes_wo_lines = VerifyingKey::to_gnark_bytes_wo_lines(&buf, true).unwrap();
+    
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+
 
         let mut proof_file = File::open("src/test_data/cubic_uncompressed_proof.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
@@ -613,7 +618,8 @@ mod tests {
         let proof = Proof::from_uncompressed_gnark_bytes(&buf).unwrap();
         let public_inputs = vec![Fr::from(35)];
 
-        let result = verify(&proof, &vk, &public_inputs).unwrap();
+        let result = verify( &vk,  &proof,&public_inputs).unwrap();
         assert_eq!(true, result);
     }
+
 }
