@@ -55,6 +55,11 @@ pub struct Proof {
     pub zshifted_proof: OpeningProof,
 }
 
+/*
+    proof file has 2 types,
+     - compressed, where g1 points are compressed, it is the result of proof.WriteTo
+     - uncompressed, where g1 points are uncompressed, it is the result of proof.MarshalSolidity()
+*/
 impl Proof {
     pub fn from_compressed_gnark_bytes(data: &[u8]) -> Result<Self, Box<dyn Error>> {
         let mut reader = data; // Using slice directly
@@ -518,57 +523,4 @@ mod test {
         assert_eq!(compressed_proof, uncompressed_proof);
     }
 
-
-    
-
-
-    // #[test]
-    // fn test_write_compressed_cubic_proof() {
-    //     use std::fs::File;
-    //     use std::io::Write;
-
-    //     let s = String::from(COMPRESSED_PROOF_DATA2);
-
-    //     let mut f = File::create("src/test_data/cubic_compressed_proof.proof").unwrap_or_else(|e| {
-    //         panic!("create file error: {}", e);
-    //     });
-
-    //     let bytes = hex::decode(&s).unwrap();
-
-    //     match f.write(&bytes){
-    //         Ok(_) => println!("write success"),
-    //         Err(e) => println!("write error: {}", e),
-    //     };
-
-    //     match  f.flush(){
-    //         Ok(_) => println!("flush success"),
-    //         Err(e) => println!("flush error: {}", e),
-    //     };
-    // }
-
-
-    // #[test]
-    // fn test_write_uncompressed_cubic_proof() {
-    //     use std::fs::File;
-    //     use std::io::Write;
-
-    //     let s = String::from(UNCOMPRESSED_PROOF_DATA2);
-
-    //     let mut f = File::create("src/test_data/cubic_uncompressed_proof.proof").unwrap_or_else(|e| {
-    //         panic!("create file error: {}", e);
-    //     });
-
-    //     let bytes = hex::decode(&s).unwrap();
-
-    //     match f.write(&bytes){
-    //         Ok(_) => println!("write success"),
-    //         Err(e) => println!("write error: {}", e),
-    //     };
-
-    //     match  f.flush(){
-    //         Ok(_) => println!("flush success"),
-    //         Err(e) => println!("flush error: {}", e),
-    //     };
-    // }
-  
 }

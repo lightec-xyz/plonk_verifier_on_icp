@@ -587,7 +587,7 @@ mod tests {
         let mut buf = vec![];
         proof_file.read_to_end(&mut buf).unwrap();
         let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
-        let public_inputs = vec![Fr::from(36)];
+        let public_inputs = vec![Fr::from(36)];  //ERROR here, SHOULD BE 35
 
         let result = verify(&vk, &proof, &public_inputs).unwrap();
         assert_eq!(true, result);
@@ -602,13 +602,8 @@ mod tests {
     
         let mut buf = vec![];
         vk_file.read_to_end(&mut buf).unwrap();
-            //     let mut buf = vec![];
-    //     f.read_to_end(&mut buf).unwrap();
-    //     let bytes_wo_lines = VerifyingKey::to_gnark_bytes_wo_lines(&buf, true).unwrap();
     
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
-
-
         let mut proof_file = File::open("src/test_data/cubic_uncompressed_proof.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });

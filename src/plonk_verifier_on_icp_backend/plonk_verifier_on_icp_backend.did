@@ -1,3 +1,4 @@
 service : {
-    "greet": (text) -> (text) query;
+    "verify_hex": (text, text, text, bool) -> (bool);
+    "verify_bytes":(blob, blob, blob, bool)-> (bool);
 }
