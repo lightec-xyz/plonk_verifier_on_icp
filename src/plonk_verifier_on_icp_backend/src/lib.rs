@@ -160,6 +160,52 @@ mod tests {
 
     }
 
+    #[test]
+    fn test_verify_hasher() {
+        let mut vk_file = File::open("../../examples/hasher/test_data/hasher.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+
+        let mut vk_bytes = vec![];
+        vk_file.read_to_end(&mut vk_bytes).unwrap();
+        let vk_bytes_wo_lines = vk::VerifyingKey::to_gnark_bytes_wo_lines(&vk_bytes, true).unwrap();
+        let vk_hex = hex::encode(&vk_bytes);
+        let vk_hex_wo_lines = hex::encode(&vk_bytes_wo_lines);
+        println!("vk_hex: {:?}", vk_hex.clone());
+        println!("vk_hex_wo_lines: {:?}", vk_hex_wo_lines.clone());
+
+
+
+        let mut proof_file = File::open("../../examples/hasher/test_data/hasher.proof").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut proof_bytes = vec![];
+        proof_file.read_to_end(&mut proof_bytes).unwrap();
+        let proof_hex = hex::encode(&proof_bytes);
+        println!("proof_hex: {:?}", proof_hex.clone());
+   
+
+        let mut wit_file = File::open("../../examples/hasher/test_data/hasher.wtns").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut wit_bytes = vec![];
+        wit_file.read_to_end(&mut wit_bytes).unwrap();
+        let wit_hex = hex::encode(&wit_bytes);
+        println!("wit_hex: {:?}", wit_hex.clone());
+
+        let result = verify_bytes(vk_bytes, proof_bytes.clone(), wit_bytes.clone(), true);
+        assert_eq!(true, result);
+
+        let result = verify_bytes(vk_bytes_wo_lines, proof_bytes, wit_bytes, false); 
+        assert_eq!(true, result);
+
+        let result = verify_hex(vk_hex, proof_hex.clone(), wit_hex.clone(), true);
+        assert_eq!(true, result);
+
+        let result = verify_hex(vk_hex_wo_lines, proof_hex, wit_hex, false);
+        assert_eq!(true, result);
+
+    }
 
     #[test]
     fn test_compare_compressed_uncompressed_gnark_proof_from_file_1() {
