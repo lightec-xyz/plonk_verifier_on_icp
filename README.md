@@ -79,15 +79,13 @@ There are two challenges in building it:
 - fiat_shamir.rs: implement fiat_shamir function  
 - hash_to_field.rs: implement hash_to function
 - fr.rs: build fr from bytes 
-- point.rs: build BN254 G1/G2 point from bytes 
-
-
-## point.rs 
+- point.rs: build BN254 G1/G2 point from bytes
+- lib.rs: the entrance for plonk verifer, provides verify_bytes() and verify_hex() two functions.
 
 
 ## vk.rs 
 In gnark vk, a precomputed pairing lines corresponding to G₂, [α]G₂, which costs 32768 bytes.
-for saving cycles, we can used omit this lines.
+for saving cycles, we can use vk without lines as parameter verify_bytes or verify_hex.
 ```go
   type VerifyingKey struct {
     // Size circuit
@@ -126,5 +124,40 @@ thre are 2 types proof
 - compressed, where g1 points are compressed, it is the result of proof.WriteTo
 - uncompressed, where g1 points are uncompressed, it is the result of proof.MarshalSolidity()
 suggest use compressed one for saving cycles
+
+
+# How to run in local network 
+1. start ICP locally in one terminal, 
+```
+dfx start --clean
+```
+2. download repo and deploy plonk verifer on icp in another terminal,
+```
+git clone https://github.com/lightec-xyz/plonk_verifier_on_icp.git
+cd plonk_verifier_on_icp
+dfx deploy plonk_verifier_on_icp_backend 
+```
+after deployed, get the cansiter id(e.g. bkyz2-fmaaa-aaaaa-qaaaq-cai) for later use
+```
+Installing canisters...
+Creating UI canister on the local network.
+The UI canister on the "local" network is "bd3sg-teaaa-aaaaa-qaaba-cai"
+Installing code for canister plonk_verifier_on_icp_backend, with canister ID bkyz2-fmaaa-aaaaa-qaaaq-cai
+Deployed canisters.
+URLs:
+  Backend canister via Candid interface:
+    plonk_verifier_on_icp_backend: http://127.0.0.1:4943/?canisterId=bd3sg-teaaa-aaaaa-qaaba-cai&id=bkyz2-fmaaa-aaaaa-qaaaq-cai
+```
+3. build the one circuit(e.g. hasher) in examples directory, and execute it, which will generate verifyingkey, proof, and witness and then call verify_bytes() to verify the proof/witness.
+```
+cd examples 
+go mod tidy
+cd hasher
+go build
+./hasher --canister bkyz2-fmaaa-aaaaa-qaaaq-cai
+```
+
+
+
 
 
