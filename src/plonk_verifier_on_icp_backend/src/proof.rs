@@ -510,12 +510,12 @@ mod test {
     
     #[test]
     fn test_compare_compressed_uncompressed_gnark_proof_from_file() {
-        let mut compressed_file = File::open("src/test_data/cubic_compressed_proof.proof").unwrap();
+        let mut compressed_file = File::open("src/test_data/cubic.proof").unwrap();
         let mut compressed_data = Vec::new();
         compressed_file.read_to_end(&mut compressed_data).unwrap();
         let compressed_proof = Proof::from_compressed_gnark_bytes(&compressed_data).unwrap();
 
-        let mut uncompressed_file = File::open("src/test_data/cubic_uncompressed_proof.proof").unwrap();
+        let mut uncompressed_file = File::open("src/test_data/cubic_uncompressed.proof").unwrap();
         let mut uncompressed_data = Vec::new();
         uncompressed_file.read_to_end(&mut uncompressed_data).unwrap();
         let uncompressed_proof = Proof::from_uncompressed_gnark_bytes(&uncompressed_data).unwrap();

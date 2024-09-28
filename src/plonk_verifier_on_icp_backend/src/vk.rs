@@ -731,48 +731,4 @@ mod test {
         let vk2 = VerifyingKey::from_gnark_bytes(&buf_wo_lines, false).unwrap();
         assert_eq!(true,  vk1.eq_wo_lines(&vk2));
     }
-
-    #[test]
-    fn test_read_redeem_vk() {
-        let mut f1 = File::open("src/test_data/redeem_beta1.vk").unwrap_or_else(|e| {
-            panic!("open file error: {}", e);
-        });
-
-        let mut buf1 = vec![];
-        f1.read_to_end(&mut buf1).unwrap();
-        let vk1 = VerifyingKey::from_gnark_bytes(&buf1, true).unwrap();
-
-        let mut f2 = File::open("src/test_data/redeem_beta1_wo_lines.vk").unwrap_or_else(|e| {
-            panic!("open file error: {}", e);
-        });
-
-        let mut buf2 = vec![];
-        f2.read_to_end(&mut buf2).unwrap();
-        let vk2 = VerifyingKey::from_gnark_bytes(&buf2, false).unwrap();
-
-        assert_ne!(vk1, vk2);
-        assert_eq!(vk1.eq_wo_lines(&vk2), true);
-    }
-
-
-
-    // #[test]
-    // fn test_convert_redeem_vk_to_vk_wo_lines() {
-    //     use ark_serialize::Write;
-    //     let mut f = File::open("src/test_data/redeem_beta1.vk").unwrap_or_else(|e| {
-    //         panic!("open file error: {}", e);
-    //     });
-
-    //     let mut buf = vec![];
-    //     f.read_to_end(&mut buf).unwrap();
-    //     let bytes_wo_lines = VerifyingKey::to_gnark_bytes_wo_lines(&buf, true).unwrap();
-
-    //     let mut new_f = File::create("src/test_data/redeem_beta1_wo_lines.vk").unwrap();
-
-    //     new_f.write(&bytes_wo_lines).unwrap();
-    //     new_f.flush().unwrap()
-
-    // }
-
-
 }

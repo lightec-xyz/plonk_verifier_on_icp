@@ -506,12 +506,12 @@ mod tests {
         vk_file.read_to_end(&mut buf).unwrap();
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
 
-        let mut proof_file = File::open("src/test_data/cubic_compressed_proof.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/cubic_uncompressed.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut buf = vec![];
         proof_file.read_to_end(&mut buf).unwrap();
-        let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
+        let proof = Proof::from_uncompressed_gnark_bytes(&buf).unwrap();
 
         let mut transcript = Transcript::new(
             Box::new(Sha256::new()),
@@ -550,14 +550,14 @@ mod tests {
         vk_file.read_to_end(&mut buf).unwrap();
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
 
-        let mut proof_file = File::open("src/test_data/cubic_compressed_proof.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/cubic.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut buf = vec![];
         proof_file.read_to_end(&mut buf).unwrap();
         let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
 
-        let mut wit_file = File::open("src/test_data/cubic_public_witness.wtns").unwrap_or_else(|e| {
+        let mut wit_file = File::open("src/test_data/cubic.wtns").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut buf = vec![];
@@ -581,7 +581,7 @@ mod tests {
         vk_file.read_to_end(&mut buf).unwrap();
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
 
-        let mut proof_file = File::open("src/test_data/cubic_compressed_proof.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/cubic.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut buf = vec![];
@@ -604,7 +604,7 @@ mod tests {
         vk_file.read_to_end(&mut buf).unwrap();
     
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
-        let mut proof_file = File::open("src/test_data/cubic_uncompressed_proof.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/cubic_uncompressed.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
 
