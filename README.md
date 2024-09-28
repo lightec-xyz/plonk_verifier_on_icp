@@ -88,7 +88,7 @@ There are two challenges in building it:
 ## vk.rs 
 In gnark vk, a precomputed pairing lines corresponding to G₂, [α]G₂, which costs 32768 bytes.
 for saving cycles, we can used omit this lines.
-```
+```go
   type VerifyingKey struct {
     // Size circuit
     Size              uint64
