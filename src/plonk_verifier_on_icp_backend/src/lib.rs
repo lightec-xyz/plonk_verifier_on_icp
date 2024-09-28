@@ -1,4 +1,4 @@
-use ic_cdk::{update};
+use ic_cdk::{update, query};
 
 mod fr;
 mod point;
@@ -9,8 +9,50 @@ mod witness;
 mod hash_to_field;
 mod verifier;
 
-#[update]
+
+fn verify(vk_bytes:Vec<u8>, proof_bytes: Vec<u8>, wit_bytes:Vec<u8>, vk_has_lines:bool) ->bool {
+    let proof = match proof::Proof::from_compressed_gnark_bytes(&proof_bytes) {
+        Ok(proof) => proof,
+        Err(err) => {
+        ic_cdk::eprintln!("Failed to decode proof: {}", err);
+        return false
+        }
+    };
+
+    let wit = match witness::PublicWitness::from_gnark_bytes(&wit_bytes) {
+        Ok(wit) => wit,
+        Err(err) => {
+        ic_cdk::eprintln!("Failed to decode witness: {}", err);
+        return false
+        }
+    };
+
+    let vk = match vk::VerifyingKey::from_gnark_bytes(&vk_bytes, vk_has_lines) {
+        Ok(vk) => vk,
+        Err(err) => {
+        ic_cdk::eprintln!("Failed to decode vk: {}", err);
+        return false
+        }
+    };
+
+    let result = match verifier::verify(&vk, &proof, &wit){
+        Ok(result ) => result,
+        Err(err) => {
+        ic_cdk::eprintln!("Failed to verify proof: {}", err);
+        return false
+        }
+    };
+    return result
+}
+
+
+#[query]
 fn verify_hex(vk_hex:String, proof_hex: String, wit_hex:String, vk_has_lines:bool) ->bool {
+    ic_cdk::println!("vk:{}", vk_hex.clone());
+    ic_cdk::println!("proof:{}", proof_hex.clone());
+    ic_cdk::println!("wit:{}", wit_hex.clone());
+    ic_cdk::println!("vk_has_lines:{}", vk_has_lines);
+
     let vk_bytes =  match hex::decode(vk_hex){
         Ok(bytes) => bytes,
         Err(e) => {
@@ -35,76 +77,31 @@ fn verify_hex(vk_hex:String, proof_hex: String, wit_hex:String, vk_has_lines:boo
         }   
     };
 
-    let proof = match proof::Proof::from_compressed_gnark_bytes(&proof_bytes) {
-        Ok(proof) => proof,
-        Err(err) => {
-        eprintln!("Failed to decode proof: {}", err);
-        return false
-        }
-    };
-
-    let wit = match witness::PublicWitness::from_gnark_bytes(&wit_bytes) {
-        Ok(wit) => wit,
-        Err(err) => {
-        eprintln!("Failed to decode witness: {}", err);
-        return false
-        }
-    };
-
-    let vk = match vk::VerifyingKey::from_gnark_bytes(&vk_bytes, vk_has_lines) {
-        Ok(vk) => vk,
-        Err(err) => {
-        eprintln!("Failed to decode vk: {}", err);
-        return false
-        }
-    };
-
-    let result = match verifier::verify(&vk, &proof, &wit){
-        Ok(result ) => result,
-        Err(err) => {
-        eprintln!("Failed to verify proof: {}", err);
-        return false
-        }
-    };
+    let result = verify(vk_bytes, proof_bytes, wit_bytes, vk_has_lines);
+    if !result {
+        ic_cdk::println!("verify fail");
+    }else {
+        ic_cdk::println!("verify pass");
+    }
 
     return result
 }
 
 
-#[update]
+#[query]
 fn verify_bytes(vk_bytes:Vec<u8>, proof_bytes: Vec<u8>, wit_bytes:Vec<u8>, vk_has_lines:bool) ->bool {
-    let proof = match proof::Proof::from_compressed_gnark_bytes(&proof_bytes) {
-        Ok(proof) => proof,
-        Err(err) => {
-        eprintln!("Failed to decode proof: {}", err);
-        return false
-        }
-    };
+    ic_cdk::println!("vk:{}", hex::encode(vk_bytes.clone()));
+    ic_cdk::println!("proof:{}", hex::encode(proof_bytes.clone()));
+    ic_cdk::println!("wit:{}", hex::encode(wit_bytes.clone()));
+    ic_cdk::println!("vk_has_lines:{}", vk_has_lines);
 
-    let wit = match witness::PublicWitness::from_gnark_bytes(&wit_bytes) {
-        Ok(wit) => wit,
-        Err(err) => {
-        eprintln!("Failed to decode witness: {}", err);
-        return false
-        }
-    };
-
-    let vk = match vk::VerifyingKey::from_gnark_bytes(&vk_bytes, vk_has_lines) {
-        Ok(vk) => vk,
-        Err(err) => {
-        eprintln!("Failed to decode vk: {}", err);
-        return false
-        }
-    };
-
-    let result = match verifier::verify(&vk, &proof, &wit){
-        Ok(result ) => result,
-        Err(err) => {
-        eprintln!("Failed to verify proof: {}", err);
-        return false
-        }
-    };
-
+    let result = verify(vk_bytes, proof_bytes, wit_bytes, vk_has_lines);
+    if !result {
+        ic_cdk::println!("verify fail");
+    }else {
+        ic_cdk::println!("verify pass");
+    }
+    
     return result
 }
 
