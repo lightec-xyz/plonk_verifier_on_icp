@@ -1,7 +1,7 @@
 use crate::fr::*;
 use crate::point::*;
 use ark_bn254::{Fr, G1Affine};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+
 pub use ark_std::io::Read;
 use std::error::Error;
 
@@ -55,6 +55,11 @@ pub struct Proof {
     pub zshifted_proof: OpeningProof,
 }
 
+/*
+    proof file has 2 types,
+     - compressed, where g1 points are compressed, it is the result of proof.WriteTo
+     - uncompressed, where g1 points are uncompressed, it is the result of proof.MarshalSolidity()
+*/
 impl Proof {
     pub fn from_compressed_gnark_bytes(data: &[u8]) -> Result<Self, Box<dyn Error>> {
         let mut reader = data; // Using slice directly
@@ -209,7 +214,7 @@ impl Proof {
         let z_shifted_h_commit = gnark_uncompressed_bytes_to_g1_point(&z_shifted_h_bytes)?;
 
         let mut bsb22_commit_values = Vec::with_capacity(bsb22_commit_len);
-        for i in 0..bsb22_commit_len {
+        for _ in 0..bsb22_commit_len {
             let mut tmp32 = [0u8; 32];
             reader.read_exact(&mut tmp32)?;
             let value =fr_from_gnark_bytes(&tmp32);
@@ -340,7 +345,6 @@ mod test {
     use super::*;
     use ark_ec::AffineRepr;
     use ark_ff::PrimeField;
-    use std::str::FromStr;
     use std::fs::File;
 
     static COMPRESSED_PROOF_DATA1 :&str = "aa62212fc76a073f0c362bcc85d55e23a385cab3a0cc43c1a1886a45343e7f36e2abbdf4dcda843413afd5fd1c3b804f2d09e7b055b08407424bdf564245dd72a54cfac1e67a7255d23e87fa0c2e4e0091494968c360c23e7ed7a620fac61a60c517fef1dd486a8a5a7330a15087502875a8c0e48ac866006b5043c2a0375778de7c88ee8d6a76ff5de675a187bc972c28c83de96656c5032e8d0d7cfd9c9f6ada67cbfe1f2e7b6e88f065136592997dab70e3e8de071c6651d9648239a144a0a363fc65a6303c66b8c00f720f63091e7bd423bc4fd46e16065849e76fb95d65a56df4fee6ed268c37e034f6227cac81437ea89f70777683d7fa71810d607055000000072d4488f4095c1834223cceb87d00361f0cd9d31e0403c84b496cd933791d90e020b2c0ffedd2e6f9413a81e1f0eff3ea8cd975bbc2044813f274a9061de6b7790135c7d6e2711aa691278c38e5fccb0dbe7fa8a2754e76b0dad38cc68dfe6e42249bab1ab7309afc1df456ce81f6c005544531f9499dac686352abff6771e33708860ba4ce9e9988f3c33ca9307f1f3c4943a89d4964322e660aad09e51a69d32ccea0b5a95bf05e1227698a7a4eb2e62db941c4f2fb6ec0421acf46b2d0c0380a035bf740723c02293fb9b7fce971f21a0d67907e172bcc1ad5cecabda2a2639a7c4ca3bec5ab492acfd62fad4d43936cd0492b50345353ef0eee4c17d338890c2540befd83e7378302ee385350babb43a8882e35efec14b418c5128db48c0d00000000";
@@ -506,12 +510,12 @@ mod test {
     
     #[test]
     fn test_compare_compressed_uncompressed_gnark_proof_from_file() {
-        let mut compressed_file = File::open("src/test_data/cubic_compressed_proof.proof").unwrap();
+        let mut compressed_file = File::open("src/test_data/cubic.proof").unwrap();
         let mut compressed_data = Vec::new();
         compressed_file.read_to_end(&mut compressed_data).unwrap();
         let compressed_proof = Proof::from_compressed_gnark_bytes(&compressed_data).unwrap();
 
-        let mut uncompressed_file = File::open("src/test_data/cubic_uncompressed_proof.proof").unwrap();
+        let mut uncompressed_file = File::open("src/test_data/cubic_uncompressed.proof").unwrap();
         let mut uncompressed_data = Vec::new();
         uncompressed_file.read_to_end(&mut uncompressed_data).unwrap();
         let uncompressed_proof = Proof::from_uncompressed_gnark_bytes(&uncompressed_data).unwrap();
@@ -519,57 +523,4 @@ mod test {
         assert_eq!(compressed_proof, uncompressed_proof);
     }
 
-
-    
-
-
-    // #[test]
-    // fn test_write_compressed_cubic_proof() {
-    //     use std::fs::File;
-    //     use std::io::Write;
-
-    //     let s = String::from(COMPRESSED_PROOF_DATA2);
-
-    //     let mut f = File::create("src/test_data/cubic_compressed_proof.proof").unwrap_or_else(|e| {
-    //         panic!("create file error: {}", e);
-    //     });
-
-    //     let bytes = hex::decode(&s).unwrap();
-
-    //     match f.write(&bytes){
-    //         Ok(_) => println!("write success"),
-    //         Err(e) => println!("write error: {}", e),
-    //     };
-
-    //     match  f.flush(){
-    //         Ok(_) => println!("flush success"),
-    //         Err(e) => println!("flush error: {}", e),
-    //     };
-    // }
-
-
-    // #[test]
-    // fn test_write_uncompressed_cubic_proof() {
-    //     use std::fs::File;
-    //     use std::io::Write;
-
-    //     let s = String::from(UNCOMPRESSED_PROOF_DATA2);
-
-    //     let mut f = File::create("src/test_data/cubic_uncompressed_proof.proof").unwrap_or_else(|e| {
-    //         panic!("create file error: {}", e);
-    //     });
-
-    //     let bytes = hex::decode(&s).unwrap();
-
-    //     match f.write(&bytes){
-    //         Ok(_) => println!("write success"),
-    //         Err(e) => println!("write error: {}", e),
-    //     };
-
-    //     match  f.flush(){
-    //         Ok(_) => println!("flush success"),
-    //         Err(e) => println!("flush error: {}", e),
-    //     };
-    // }
-  
 }

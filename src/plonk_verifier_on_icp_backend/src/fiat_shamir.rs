@@ -143,7 +143,7 @@ impl Clone for Challenge {
 #[cfg(test)]
 mod test {
     use super::*;
-    use sha2::{Digest, Sha256, Sha512};
+    use sha2::{Digest, Sha256};
 
     #[test]
     fn test_fiat_shamir_1() {

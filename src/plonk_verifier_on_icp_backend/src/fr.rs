@@ -14,10 +14,10 @@ pub fn fr_from_gnark_bytes(bytes: &[u8]) -> Fr {
 mod test {
     use super::*;
     use ark_serialize::{
-        CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+        CanonicalDeserialize, CanonicalSerialize,
     };
 
-    use ark_ff::{BigInteger, BigInteger256, Field, One, PrimeField, Zero};
+    use ark_ff::{BigInteger256, Field};
     use num_bigint::BigUint;
     use num_traits::Num;
     use std::ops::{Add, Div, Mul, Sub};

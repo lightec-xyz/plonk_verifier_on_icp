@@ -82,5 +82,49 @@ There are two challenges in building it:
 - point.rs: build BN254 G1/G2 point from bytes 
 
 
+## point.rs 
+
+
+## vk.rs 
+In gnark vk, a precomputed pairing lines corresponding to G₂, [α]G₂, which costs 32768 bytes.
+for saving cycles, we can used omit this lines.
+```go
+  type VerifyingKey struct {
+    // Size circuit
+    Size              uint64
+    SizeInv           fr.Element
+    Generator         fr.Element
+    NbPublicVariables uint64
+
+    // Commitment scheme that is used for an instantiation of PLONK
+    Kzg kzg.VerifyingKey
+
+    // cosetShift generator of the coset on the small domain
+    CosetShift fr.Element
+
+    // S commitments to S1, S2, S3
+    S [3]kzg.Digest
+
+    // Commitments to ql, qr, qm, qo, qcp prepended with as many zeroes (ones for l) as there are public inputs.
+    // In particular Qk is not complete.
+    Ql, Qr, Qm, Qo, Qk kzg.Digest
+    Qcp                []kzg.Digest
+
+    CommitmentConstraintIndexes []uint64
+  }
+
+  type VerifyingKey struct {
+	G2    [2]bn254.G2Affine // [G₂, [α]G₂ ]
+	G1    bn254.G1Affine
+	Lines [2][2][len(bn254.LoopCounter)]bn254.LineEvaluationAff // precomputed pairing lines corresponding to G₂, [α]G₂
+  }
+
+```
+
+## proof.rs 
+thre are 2 types proof
+- compressed, where g1 points are compressed, it is the result of proof.WriteTo
+- uncompressed, where g1 points are uncompressed, it is the result of proof.MarshalSolidity()
+suggest use compressed one for saving cycles
 
 

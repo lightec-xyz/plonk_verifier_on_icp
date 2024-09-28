@@ -1,6 +1,6 @@
 use crate::fr::*;
 use crate::fiat_shamir::*;
-use crate::hash_to_field;
+// use crate::hash_to_field;
 use crate::point::*;
 use crate::proof::*;
 use crate::vk::*;
@@ -19,7 +19,7 @@ use ark_std::{One, Zero};
 
 
 //verify the gnark proof generated in rust
-pub fn verify(proof:&Proof, vk:&VerifyingKey, public_witness:&[Fr]) -> Result<bool, Box<dyn Error>> {
+pub fn verify(vk:&VerifyingKey, proof:&Proof, public_witness:&[Fr]) -> Result<bool, Box<dyn Error>> {
     if proof.bsb22_commitments.len() != vk.qcp.len() {
         return Err("bsb22_commitments.len() != qcp.len()".into())
     }
@@ -77,8 +77,6 @@ pub fn verify(proof:&Proof, vk:&VerifyingKey, public_witness:&[Fr]) -> Result<bo
             lagrange = lagrange.div(&den);
         }
     }
-
-    let nb_buf = 32;
 
     for i in 0..vk.commit_constraint_indexes.len() {
         let mut hasher = HashToField::new(b"BSB22-Plonk");
@@ -362,7 +360,7 @@ pub fn kzg_derive_gamma(fr : Fr, digests: &[G1Affine], claimed_values : &[Fr], d
         };
     }
  
-    let mut bytes: Vec<u8> = transcript.compute_challenge("gamma")?;
+    let bytes: Vec<u8> = transcript.compute_challenge("gamma")?;
     let v = BigUint::from_bytes_be(&bytes);
     let fr = Fr::from(v);
     Ok(fr)
@@ -395,7 +393,6 @@ mod tests {
     // use std::vec;
     use super::*;
     use std::fs::File;
-    use std::io::Write;
 
     #[test]
     fn test_kzg_divide_polynomial_by_x_minus_a() {
@@ -463,7 +460,7 @@ mod tests {
         .collect();
     
         let mut digests = Vec::with_capacity(ganrk_points.len());
-        for (i, point) in ganrk_points.iter().enumerate() {
+        for (_, point) in ganrk_points.iter().enumerate() {
             let x = BigUint::from_str(&point.big_x).unwrap();
             let y = BigUint::from_str(&point.big_y).unwrap();
 
@@ -509,12 +506,12 @@ mod tests {
         vk_file.read_to_end(&mut buf).unwrap();
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
 
-        let mut proof_file = File::open("src/test_data/cubic_compressed_proof.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/cubic_uncompressed.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut buf = vec![];
         proof_file.read_to_end(&mut buf).unwrap();
-        let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
+        let proof = Proof::from_uncompressed_gnark_bytes(&buf).unwrap();
 
         let mut transcript = Transcript::new(
             Box::new(Sha256::new()),
@@ -553,14 +550,14 @@ mod tests {
         vk_file.read_to_end(&mut buf).unwrap();
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
 
-        let mut proof_file = File::open("src/test_data/cubic_compressed_proof.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/cubic.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut buf = vec![];
         proof_file.read_to_end(&mut buf).unwrap();
         let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
 
-        let mut wit_file = File::open("src/test_data/cubic_public_witness.wtns").unwrap_or_else(|e| {
+        let mut wit_file = File::open("src/test_data/cubic.wtns").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut buf = vec![];
@@ -568,7 +565,7 @@ mod tests {
         let public_witness = PublicWitness::from_gnark_bytes(&buf).unwrap();
    
 
-        let result = verify(&proof, &vk, &public_witness).unwrap();
+        let result = verify(&vk, &proof, &public_witness).unwrap();
         assert_eq!(true, result);
     }
 
@@ -584,15 +581,15 @@ mod tests {
         vk_file.read_to_end(&mut buf).unwrap();
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
 
-        let mut proof_file = File::open("src/test_data/cubic_compressed_proof.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/cubic.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut buf = vec![];
         proof_file.read_to_end(&mut buf).unwrap();
         let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
-        let public_inputs = vec![Fr::from(36)];
+        let public_inputs = vec![Fr::from(36)];  //ERROR here, SHOULD BE 35
 
-        let result = verify(&proof, &vk, &public_inputs).unwrap();
+        let result = verify(&vk, &proof, &public_inputs).unwrap();
         assert_eq!(true, result);
     }
 
@@ -605,9 +602,9 @@ mod tests {
     
         let mut buf = vec![];
         vk_file.read_to_end(&mut buf).unwrap();
+    
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
-
-        let mut proof_file = File::open("src/test_data/cubic_uncompressed_proof.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/cubic_uncompressed.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
 
@@ -616,7 +613,8 @@ mod tests {
         let proof = Proof::from_uncompressed_gnark_bytes(&buf).unwrap();
         let public_inputs = vec![Fr::from(35)];
 
-        let result = verify(&proof, &vk, &public_inputs).unwrap();
+        let result = verify( &vk,  &proof,&public_inputs).unwrap();
         assert_eq!(true, result);
     }
+
 }
