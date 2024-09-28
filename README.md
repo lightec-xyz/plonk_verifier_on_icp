@@ -157,6 +157,10 @@ go build
 ./hasher --canister bkyz2-fmaaa-aaaaa-qaaaq-cai
 ```
 
+# How to run in ICP mainnet 
+The plonk verifier has been deployed on ICP mainnet at https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=3luut-nqaaa-aaaao-qbcwa-cai.
+
+
 
 
 
