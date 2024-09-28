@@ -154,11 +154,22 @@ cd examples
 go mod tidy
 cd hasher
 go build
-./hasher --canister bkyz2-fmaaa-aaaaa-qaaaq-cai
+./hasher -canister bkyz2-fmaaa-aaaaa-qaaaq-cai
 ```
 
 # How to run in ICP mainnet 
-The plonk verifier has been deployed on ICP mainnet at https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=3luut-nqaaa-aaaao-qbcwa-cai.
+plonk_verifer deployed at https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=3luut-nqaaa-aaaao-qbcwa-cai. you can run the example on ICP mainnet with the following command.
+
+```bash
+cd examples 
+go mod tidy
+cd hasher
+go build
+./hasher -canister 3luut-nqaaa-aaaao-qbcwa-cai -network ic 
+```
+Or, just build circuit and retrieve verifyingkey, proof, and witness and input them as the following shown.
+<img width="1325" alt="image" src="https://github.com/user-attachments/assets/2a0ac97d-0503-4a65-9cce-b282195636e4">
+
 
 
 
