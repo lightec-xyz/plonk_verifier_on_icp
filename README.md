@@ -128,17 +128,17 @@ suggest use compressed one for saving cycles
 
 # How to run in local network 
 1. start ICP locally in one terminal, 
-```
+```bash
 dfx start --clean
 ```
 2. download repo and deploy plonk verifer on icp in another terminal,
-```
+```bash
 git clone https://github.com/lightec-xyz/plonk_verifier_on_icp.git
 cd plonk_verifier_on_icp
 dfx deploy plonk_verifier_on_icp_backend 
 ```
 after deployed, get the cansiter id(e.g. bkyz2-fmaaa-aaaaa-qaaaq-cai) for later use
-```
+```bash
 Installing canisters...
 Creating UI canister on the local network.
 The UI canister on the "local" network is "bd3sg-teaaa-aaaaa-qaaba-cai"
@@ -149,7 +149,7 @@ URLs:
     plonk_verifier_on_icp_backend: http://127.0.0.1:4943/?canisterId=bd3sg-teaaa-aaaaa-qaaba-cai&id=bkyz2-fmaaa-aaaaa-qaaaq-cai
 ```
 3. build the one circuit(e.g. hasher) in examples directory, and execute it, which will generate verifyingkey, proof, and witness and then call verify_bytes() to verify the proof/witness.
-```
+```bash
 cd examples 
 go mod tidy
 cd hasher
