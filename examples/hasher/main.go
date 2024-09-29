@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"net/url"
@@ -49,4 +50,9 @@ func main() {
 	if !result {
 		panic("verification failed")
 	}
+
+	fmt.Printf("vk: %v\n", hex.EncodeToString(vkBytes))
+	fmt.Printf("proof: %v\n", hex.EncodeToString(proofBytes))
+	fmt.Printf("wit: %v\n", hex.EncodeToString(witBytes))
+	fmt.Println("verification success")
 }

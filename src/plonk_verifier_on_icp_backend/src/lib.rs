@@ -47,12 +47,7 @@ fn verify(vk_bytes:Vec<u8>, proof_bytes: Vec<u8>, wit_bytes:Vec<u8>, vk_has_line
 
 
 #[query]
-fn verify_hex(vk_hex:String, proof_hex: String, wit_hex:String, vk_has_lines:bool) ->bool {
-    ic_cdk::println!("vk:{}", vk_hex.clone());
-    ic_cdk::println!("proof:{}", proof_hex.clone());
-    ic_cdk::println!("wit:{}", wit_hex.clone());
-    ic_cdk::println!("vk_has_lines:{}", vk_has_lines);
-
+pub fn verify_hex(vk_hex:String, proof_hex: String, wit_hex:String, vk_has_lines:bool) ->bool {
     let vk_bytes =  match hex::decode(vk_hex){
         Ok(bytes) => bytes,
         Err(e) => {
@@ -79,27 +74,18 @@ fn verify_hex(vk_hex:String, proof_hex: String, wit_hex:String, vk_has_lines:boo
 
     let result = verify(vk_bytes, proof_bytes, wit_bytes, vk_has_lines);
     if !result {
-        ic_cdk::println!("verify fail");
-    }else {
-        ic_cdk::println!("verify pass");
+        ic_cdk::trap("verify fail");
     }
-
+    
     return result
 }
 
 
 #[query]
-fn verify_bytes(vk_bytes:Vec<u8>, proof_bytes: Vec<u8>, wit_bytes:Vec<u8>, vk_has_lines:bool) ->bool {
-    ic_cdk::println!("vk:{}", hex::encode(vk_bytes.clone()));
-    ic_cdk::println!("proof:{}", hex::encode(proof_bytes.clone()));
-    ic_cdk::println!("wit:{}", hex::encode(wit_bytes.clone()));
-    ic_cdk::println!("vk_has_lines:{}", vk_has_lines);
-
+pub fn verify_bytes(vk_bytes:Vec<u8>, proof_bytes: Vec<u8>, wit_bytes:Vec<u8>, vk_has_lines:bool) ->bool {
     let result = verify(vk_bytes, proof_bytes, wit_bytes, vk_has_lines);
     if !result {
-        ic_cdk::println!("verify fail");
-    }else {
-        ic_cdk::println!("verify pass");
+        ic_cdk::trap("verify fail");
     }
     
     return result
