@@ -38,12 +38,13 @@ thre are 2 types proof
 This repo is based on ganrk v0.9.1.
 
 
-# How to run in local network 
+# How to run locally 
 1. start ICP locally in one terminal, 
 ```bash
 dfx start --clean
 ```
-2. download repo and deploy plonk verifer on icp in another terminal,
+
+2. download repo and deploy plonk verifer in another terminal,
 ```bash
 git clone https://github.com/lightec-xyz/plonk_verifier_on_icp.git
 cd plonk_verifier_on_icp
@@ -60,6 +61,7 @@ URLs:
   Backend canister via Candid interface:
     plonk_verifier_on_icp_backend: http://127.0.0.1:4943/?canisterId=bd3sg-teaaa-aaaaa-qaaba-cai&id=bkyz2-fmaaa-aaaaa-qaaaq-cai
 ```
+
 3. build the one circuit(e.g. hasher) in examples directory, and execute it, which will generate verifyingkey, proof, and witness and then call verify_bytes() to verify the proof/witness.
 ```bash
 cd examples 
@@ -70,7 +72,7 @@ go build
 ```
 
 # How to run in ICP mainnet 
-plonk_verifer deployed at https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=3luut-nqaaa-aaaao-qbcwa-cai. you can run the example on ICP mainnet with the following command.
+plonk_verifer is deployed at https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=3luut-nqaaa-aaaao-qbcwa-cai. you can run the example on ICP mainnet with the following command.
 
 ```bash
 cd examples 
