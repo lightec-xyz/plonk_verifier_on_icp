@@ -154,8 +154,25 @@ cd examples
 go mod tidy
 cd hasher
 go build
-./hasher --canister bkyz2-fmaaa-aaaaa-qaaaq-cai
+./hasher -canister bkyz2-fmaaa-aaaaa-qaaaq-cai
 ```
+
+# How to run in ICP mainnet 
+plonk_verifer deployed at https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=3luut-nqaaa-aaaao-qbcwa-cai. you can run the example on ICP mainnet with the following command.
+
+```bash
+cd examples 
+go mod tidy
+cd hasher
+go build
+./hasher -canister 3luut-nqaaa-aaaao-qbcwa-cai -network ic 
+```
+Or, build circuit and retrieve verifyingkey, proof, and witness and take them as input parameters in verify_hex().
+<img width="1325" alt="image" src="https://github.com/user-attachments/assets/2a0ac97d-0503-4a65-9cce-b282195636e4">
+
+Any modification in verifyingkey, proof, and witness will cause verify fail as shown below.
+<img width="1198" alt="image" src="https://github.com/user-attachments/assets/a6d0d759-e660-42fe-b7f4-5a5e724a0d61">
+
 
 
 
