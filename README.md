@@ -167,9 +167,11 @@ cd hasher
 go build
 ./hasher -canister 3luut-nqaaa-aaaao-qbcwa-cai -network ic 
 ```
-Or, just build circuit and retrieve verifyingkey, proof, and witness and input them as the following shown.
+Or, build circuit and retrieve verifyingkey, proof, and witness and take them as input parameters in verify_hex().
 <img width="1325" alt="image" src="https://github.com/user-attachments/assets/2a0ac97d-0503-4a65-9cce-b282195636e4">
 
+Any modification in verifyingkey, proof, and witness will cause verify fail as shown below.
+<img width="1198" alt="image" src="https://github.com/user-attachments/assets/a6d0d759-e660-42fe-b7f4-5a5e724a0d61">
 
 
 
