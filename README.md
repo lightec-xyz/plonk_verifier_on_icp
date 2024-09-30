@@ -18,15 +18,15 @@ To learn more before you start working with `plonk_verifier_on_icp`, see the fol
 
 ![plonk_verifier_arch drawio](https://github.com/user-attachments/assets/77413f83-62f0-46af-a6b3-80b08460ad62)
 
-- verifer.rs: entry of plonk verifier, call other files functions 
+- lib.rs: the entrance for user, provides verify_bytes() and verify_hex() two functions.
+- verifer.rs: plonk verifier, call other files functions 
 - vk.rs: build verification key from bytes.
 - proof.rs: build proof from bytes 
 - witness.rs: build witness from bytes 
 - fiat_shamir.rs: implement fiat_shamir function  
-- hash_to_field.rs: implement hash_to function
+- hash_to_field.rs: implement hash_to_field function
 - fr.rs: build fr from bytes 
 - point.rs: build BN254 G1/G2 point from bytes
-- lib.rs: the entrance for plonk verifer, provides verify_bytes() and verify_hex() two functions.
 
 
 ## proof.rs 
