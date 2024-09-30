@@ -20,7 +20,7 @@ To learn more before you start working with `plonk_verifier_on_icp`, see the fol
 
 - lib.rs: the entrance for user on ICP, provides verify_bytes() and verify_hex() two functions.
 - verifer.rs: plonk verifier
-- vk.rs: build verification key from bytes.
+- vk.rs: build verifyingkey from bytes.
 - proof.rs: build proof from bytes 
 - witness.rs: build witness from bytes 
 - fiat_shamir.rs: implement fiat_shamir function  
