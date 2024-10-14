@@ -1,4 +1,4 @@
-use ic_cdk::{update, query};
+use ic_cdk::query;
 
 mod fr;
 mod point;
@@ -35,7 +35,7 @@ fn verify(vk_bytes:Vec<u8>, proof_bytes: Vec<u8>, wit_bytes:Vec<u8>, vk_has_line
         }
     };
 
-    let result = match verifier::verify(&vk, &proof, &wit){
+    let result = match verifier::verify(&vk, &proof, &wit, true){
         Ok(result ) => result,
         Err(err) => {
         ic_cdk::eprintln!("Failed to verify proof: {}", err);
@@ -97,7 +97,7 @@ mod tests {
     use super::*;
     use std::fs::File;
     use std::io::Read;
-    use ark_serialize::Write;
+
 
     #[test]
     fn test_verify_cubic() {

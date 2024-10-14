@@ -19,7 +19,9 @@ use ark_std::{One, Zero};
 
 
 //verify the gnark proof generated in rust
-pub fn verify(vk:&VerifyingKey, proof:&Proof, public_witness:&[Fr]) -> Result<bool, Box<dyn Error>> {
+//if proof is rebuild from uncompressed bytes, because gnark MarshalSolidity() skip pack the claimed value of the linearised polynomial at zeta, so proof.batched_proof.claimed_values[0] is zero, 
+//so skip the proof.batched_proof.claimed_values[0] != const_lin check. please check "ganrk/backend/plonk/bn254/solidity.go" for detail
+pub fn verify(vk:&VerifyingKey, proof:&Proof, public_witness:&[Fr], proof_is_from_compressed :bool) -> Result<bool, Box<dyn Error>> {
     if proof.bsb22_commitments.len() != vk.qcp.len() {
         return Err("bsb22_commitments.len() != qcp.len()".into())
     }
@@ -28,6 +30,37 @@ pub fn verify(vk:&VerifyingKey, proof:&Proof, public_witness:&[Fr]) -> Result<bo
         return Err("public_witness.len() != nb_public_variables".into());
     }
 
+    //check the points in the proof are on the curve
+    for i in 0..proof.lro.len() {
+        if !proof.lro[i].is_on_curve() {
+            return Err("lro[i] is not on curve".into());
+        }
+    }
+
+    if !proof.z.is_on_curve() {
+        return Err("z is not on curve".into());
+    }
+
+    for i in 0..proof.h.len() {
+        if !proof.h[i].is_on_curve() {
+            return Err("H[i] is not on curve".into());
+        }
+    } 
+
+    for i in 0..proof.bsb22_commitments.len() {
+        if !proof.bsb22_commitments[i].is_on_curve() {
+            return Err("bsb22_commitments[i] is not on curve".into());
+        }
+    }
+
+    if !proof.batched_proof.h.is_on_curve() {
+        return Err("batched_proof.h is not on curve".into());
+    }
+    
+    if !proof.zshifted_proof.h.is_on_curve() {
+        return Err("zshifted_proof.h is not on curve".into());
+    }
+    
     let mut transcript = Transcript::new(
         Box::new(Sha256::new()),
         vec!["gamma", "beta", "alpha", "zeta"],
@@ -48,20 +81,24 @@ pub fn verify(vk:&VerifyingKey, proof:&Proof, public_witness:&[Fr]) -> Result<bo
 
     let zeta = derive_randomness(&mut transcript, "zeta",Some(vec![proof.h[0], proof.h[1],  proof.h[2]]))?;
 
-    // evaluation of Z=Xⁿ-1 at ζ
+    // evaluation of zh_zeta = ζ^n - 1
     let one = Fr::one();
     let b_expo = BigInteger64::from(vk.size);
     let zeta_power_m = zeta.pow(&b_expo);  //zeta_pow_m = ζ^n
-    let z_zeta = zeta_power_m.sub(&one);   //z_zeta = ζ^n - 1
+    let zh_zeta = zeta_power_m.sub(&one);   //zh_zeta = ζ^n - 1
+    let zeta_minus_one = zeta.sub(&one);    //zeta_minus_one = ζ - 1
+    let inverse_zeta_minus_one = zeta_minus_one.inverse().unwrap();  //inverse_zeta_minus_one = 1/(ζ - 1)
+    let lagrange_zero = zh_zeta.mul(&inverse_zeta_minus_one).mul(vk.size_inv);  //lagrange_zero = 1/n * (ζ^n-1)/(ζ-1)
 
     // compute PI = ∑_{i<n} Lᵢ*wᵢ //计算PI 的方程 和PI(zeta)的值？
+    //TODO(keep), use batch inversion
     let mut pi = Fr::zero();
     let mut xi_li = Fr::zero();
     let mut w_pow_i = Fr::one();
     let mut den = zeta.clone();
     den = den.sub(&w_pow_i);                    //den = zeta - w^0
 
-    let mut lagrange = z_zeta.clone();
+    let mut lagrange = zh_zeta.clone();
     lagrange = lagrange.div(&den).mul(&vk.size_inv);
     let lagrange_one = lagrange.clone();
 
@@ -95,72 +132,83 @@ pub fn verify(vk:&VerifyingKey, proof:&Proof, public_witness:&[Fr]) -> Result<bo
         pi = pi.add(&xi_li);
     }
   
+    let l_eval = proof.batched_proof.claimed_values[1];
+    let r_eval = proof.batched_proof.claimed_values[2];
+    let o_eval = proof.batched_proof.claimed_values[3];
+    let s1_eval = proof.batched_proof.claimed_values[4];
+    let s2_eval = proof.batched_proof.claimed_values[5];
 
-    let z_eval = proof.zshifted_proof.claimed_value; //z(w*zeta) evalution value 
+    //z(wζ)
+    let zu_eval = proof.zshifted_proof.claimed_value; 
 
-    let claimed_quotient_eval = proof.batched_proof.claimed_values[0];
-    let mut linearized_polynomial_zeta_eval = proof.batched_proof.claimed_values[1];
-    let l_eval = proof.batched_proof.claimed_values[2];
-    let r_eval = proof.batched_proof.claimed_values[3];
-    let o_eval = proof.batched_proof.claimed_values[4];
-    let s1_eval = proof.batched_proof.claimed_values[5];
-    let s2_eval = proof.batched_proof.claimed_values[6];
+    //alpha_square_lagrange_zero = α²*L₁(ζ)
+    let alpha_square_lagrange_zero = lagrange_zero.mul(&alpha).mul(&alpha);   // α² * 1/n * (ζ^n-1)/(ζ-1)
 
-    let mut s1_ = s1_eval.mul(&beta).add(&l_eval).add(&gamma); //_s1= (l(ζ)+β*s1(ζ)+γ) = (a(x)+β*s1(ζ)+γ))
-    let mut s2_ = s2_eval.mul(&beta).add(&r_eval).add(&gamma); //_s2= (r(ζ)+β*s2(ζ)+γ) = (b(x)+β*s2(ζ)+γ))
-    let o_ = o_eval.add(&gamma); //_o= (o(ζ)+γ) = (c(x)+γ)
+    // computing the constant coefficient of the full algebraic relation
+	// , corresponding to the value of the linearisation polynomiat at ζ
+	// PI(ζ) - α²*L₁(ζ) + α(l(ζ)+β*s1(ζ)+γ)(r(ζ)+β*s2(ζ)+γ)(o(ζ)+γ)*z(ωζ)
+    let mut s1_ = s1_eval.mul(&beta).add(&l_eval).add(&gamma); //s1_= (l(ζ)+β*s1(ζ)+γ) = (a(x)+β*s1(ζ)+γ))
+    let mut s2_ = s2_eval.mul(&beta).add(&r_eval).add(&gamma); //s2_= (r(ζ)+β*s2(ζ)+γ) = (b(x)+β*s2(ζ)+γ))
+    let o_ = o_eval.add(&gamma); //o_= (o(ζ)+γ) = (c(x)+γ)
     
-    s1_= s1_.mul(&s2_).mul(&o_).mul(&alpha).mul(z_eval);
-    let alpha_square_lagrange = lagrange_one.mul(&alpha).mul(&alpha);  //alpha_square_lagrange = α²*L₁(ζ)
+    let mut const_lin = s1_.mul(&s2_).mul(&o_).mul(&alpha).mul(zu_eval); // α(l(ζ)+β*s1(ζ)+γ)(r(ζ)+β*s2(ζ)+γ)(o(ζ)+γ)*z(ωζ)
+    const_lin = const_lin.sub(&alpha_square_lagrange_zero).add(&pi); // PI(ζ) - α²*L₁(ζ) + α(l(ζ)+β*s1(ζ)+γ)(r(ζ)+β*s2(ζ)+γ)(o(ζ)+γ)*z(ωζ)
+    const_lin = const_lin.neg(); //-[PI(ζ) - α²*L₁(ζ) + α(l(ζ)+β*s1(ζ)+γ)(r(ζ)+β*s2(ζ)+γ)(o(ζ)+γ)*z(ωζ)]
 
-
-    linearized_polynomial_zeta_eval = linearized_polynomial_zeta_eval.add(&pi).add(s1_).sub(&alpha_square_lagrange);
-    
-    let zeta_pow_m_minus_one = zeta_power_m.sub(&one);
-    linearized_polynomial_zeta_eval = linearized_polynomial_zeta_eval.div(&zeta_pow_m_minus_one);
-  
-    if claimed_quotient_eval != linearized_polynomial_zeta_eval {
-        return Err("claimed_quotient_eval != linearized_polynomial_zeta_eval".into())
+    if proof_is_from_compressed {
+        if proof.batched_proof.claimed_values[0] != const_lin {
+            return Err("algebraic relation does not hold".into())
+        } 
     }
+  
+  
+    // computing the linearised polynomial digest
+	// α²*L₁(ζ)*[Z] +
+	// _s1*[s3]+_s2*[Z] + l(ζ)*[Ql] +
+	// l(ζ)r(ζ)*[Qm] + r(ζ)*[Qr] + o(ζ)*[Qo] + [Qk] + ∑ᵢQcp_(ζ)[Pi_i] -
+	// Z_{H}(ζ)*(([H₀] + ζᵐ⁺²*[H₁] + ζ²⁽ᵐ⁺²⁾*[H₂])
+	// where
+	// _s1 =  α*(l(ζ)+β*s1(ζ)+γ)*(r(ζ)+β*s2(ζ)+γ)*β*Z(μζ)
+	// _s2 = -α*(l(ζ)+β*ζ+γ)*(r(ζ)+β*u*ζ+γ)*(o(ζ)+β*u²*ζ+γ)
 
-    let m_plus_two = BigInteger64::from(vk.size+2);
-    let zeta_m_plus_two = zeta.pow(&m_plus_two);  //ζ^{n+2}
-    let zeta_m_plus_two_big = zeta_m_plus_two.into_bigint();
+	// _s1 = α*(l(ζ)+β*s1(β)+γ)*(r(ζ)+β*s2(β)+γ)*β*Z(μζ)
+    let mut _s1 = alpha.mul(&s1_).mul(&s2_).mul(&beta).mul(&zu_eval); // α*(l(ζ)+β*s1(β)+γ)*(r(ζ)+β*s2(β)+γ)*β*Z(μζ)
 
-    let mut fold_h = proof.h[2];
-    fold_h = fold_h.mul_bigint(&zeta_m_plus_two_big).into();
-    fold_h = fold_h.add(&proof.h[1]).into();
-    fold_h = fold_h.mul_bigint(&zeta_m_plus_two_big).into();
-    fold_h = fold_h.add(&proof.h[0]).into();
 
+    // _s2 = -α*(l(ζ)+β*ζ+γ)*(r(ζ)+β*u*ζ+γ)*(o(ζ)+β*u²*ζ+γ)
+    let mut _s2 = beta.mul(&zeta).add(&l_eval).add(&gamma);  // (l(ζ)+β*ζ+γ)
+    let tmp1 = beta.mul(&vk.coset_shift).mul(&zeta).add(&gamma).add(r_eval);  // (r(ζ)+β*u*ζ+γ)
+    let tmp2 = beta.mul(&vk.coset_shift).mul(&vk.coset_shift).mul(&zeta).add(&o_eval).add(&gamma);  // (o(ζ)+β*u²*ζ+γ)
+    _s2 = _s2.mul(&tmp1).mul(&tmp2).mul(&alpha).neg(); //  _s2 = -α*(l(ζ)+β*ζ+γ)*(r(ζ)+β*u*ζ+γ)*(o(ζ)+β*u²*ζ+γ)
+
+    // α²*L₁(ζ) - α*(l(ζ)+β*ζ+γ)*(r(ζ)+β*u*ζ+γ)*(o(ζ)+β*u²*ζ+γ)
+    let coeff_z = alpha_square_lagrange_zero.add(_s2);
+
+    // l(ζ)*r(ζ)
     let rl_eval = r_eval.mul(&l_eval);
-
-    let u1 = z_eval.mul(&beta);                              //u = Z(μζ) * β
-    let v1 = s1_eval.mul(&beta).add(&l_eval).add(&gamma);    //v = (l(ζ)+β*s₁(ζ)+γ)
-    let w1 = s2_eval.mul(&beta).add(&r_eval).add(&gamma);    // w = (r(ζ)+β*s₂(ζ)+γ)
-    s1_ = u1.mul(&v1).mul(&w1).mul(&alpha);                                                     // s1_ = α*Z(μζ)(l(ζ)+β*s₁(ζ)+γ)*(r(ζ)+β*s₂(ζ)+γ)*β
-
-    let coset_square = vk.coset_shift.square();
-    let u2 = zeta.mul(&beta).add(&l_eval).add(&gamma);    // u = (l(ζ)+β*ζ+γ)
-    let v2 = zeta.mul(&beta).mul(&vk.coset_shift).add(&r_eval).add(&gamma);    // v = (r(ζ)+β*ζ*ξ+γ)
-    let w2 = zeta.mul(&beta).mul(&coset_square).add(&o_eval).add(&gamma);    // w = (o(ζ)+β*ζ*ξ^2+γ)
-    s2_= u2.mul(&v2).mul(&w2).neg();                                                     // s2_ = -β*ζ*(l(ζ)+β*ζ+γ)*(r(ζ)+β*ζ*ξ+γ)*(o(ζ)+β*ζ*ξ^2+γ
-
-    s2_ = s2_.mul(&alpha).add(&alpha_square_lagrange);
+  
+    // -ζⁿ⁺²*(ζⁿ-1), -ζ²⁽ⁿ⁺²⁾*(ζⁿ-1), -(ζⁿ-1)
+    let n_plus_two = BigInteger64::from(vk.size+2);
+    let zeta_n_plus_two = zeta.pow(&n_plus_two);  //ζ⁽ⁿ⁺²⁾
+    let zeta_n_plus_two_square = zeta_n_plus_two.mul(&zeta_n_plus_two);  // ζ²⁽ⁿ⁺²⁾
+    let zeta_n_plus_two_zh = zeta_n_plus_two.mul(zh_zeta).neg();  //- ζ⁽ⁿ⁺²⁾ * (ζⁿ-1)
+    let zeta_n_plus_two_square_zh = zeta_n_plus_two_square.mul(zh_zeta).neg();  // - ζ²⁽ⁿ⁺²⁾ * (ζⁿ-1)
+    let zh = zh_zeta.neg();  // -(ζⁿ-1)
 
     let mut points = proof.bsb22_commitments.clone();
-    let mut appended_points = vec![vk.ql, vk.qr, vk.qm, vk.qo, vk.qk, vk.s[2], proof.z];
+    let mut appended_points = vec![vk.ql, vk.qr, vk.qm, vk.qo, vk.qk, vk.s[2], proof.z, proof.h[0], proof.h[1], proof.h[2]];
     points.append(&mut appended_points);
 
-    let mut scalars = Vec::with_capacity(proof.bsb22_commitments.len()+7);
-    scalars.extend_from_slice(&proof.batched_proof.claimed_values[7..]);
-    let mut appended_scalars = vec![l_eval, r_eval, rl_eval, o_eval, one, s1_, s2_];
+
+    let mut appended_scalars = vec![l_eval, r_eval, rl_eval, o_eval, one, _s1, coeff_z, zh, zeta_n_plus_two_zh, zeta_n_plus_two_square_zh];
+    let mut scalars = Vec::with_capacity(proof.bsb22_commitments.len()+appended_scalars.len());
+    scalars.extend_from_slice(&proof.batched_proof.claimed_values[6..]);
     scalars.append(&mut appended_scalars);
 
     let linearized_polynomial_digest = G1Projective::msm(&points, &scalars).unwrap().into_affine();
 
-    let mut digests_to_fold: Vec<G1Affine> = Vec::with_capacity(vk.qcp.len()+7);
-    digests_to_fold.push(fold_h);
+
+    let mut digests_to_fold: Vec<G1Affine> = Vec::with_capacity(vk.qcp.len()+6);
     digests_to_fold.push(linearized_polynomial_digest);
     digests_to_fold.push(proof.lro[0]);
     digests_to_fold.push(proof.lro[1]);
@@ -171,9 +219,9 @@ pub fn verify(vk:&VerifyingKey, proof:&Proof, public_witness:&[Fr]) -> Result<bo
         digests_to_fold.push(*qcp)
     }
 
-    let z_eval_bytes = fr_to_gnark_bytes(&z_eval);
+    let zu_eval_bytes = fr_to_gnark_bytes(&zu_eval);
 
-    let (folded_proof, folded_digest) = fold_proof(digests_to_fold.as_slice(), &proof.batched_proof, zeta, Some(vec![z_eval_bytes]))?;
+    let (folded_proof, folded_digest) = fold_proof(digests_to_fold.as_slice(), &proof.batched_proof, zeta, Some(vec![zu_eval_bytes]))?;
     let shifted_zeta = zeta.mul(&vk.generator);
 
     let is_z_valid = kzg_verify_single_point(&proof.z, &proof.zshifted_proof, &shifted_zeta, &vk.kzg)?;
@@ -360,7 +408,7 @@ pub fn kzg_derive_gamma(fr : Fr, digests: &[G1Affine], claimed_values : &[Fr], d
         };
     }
  
-    let bytes: Vec<u8> = transcript.compute_challenge("gamma")?;
+    let mut bytes: Vec<u8> = transcript.compute_challenge("gamma")?;
     let v = BigUint::from_bytes_be(&bytes);
     let fr = Fr::from(v);
     Ok(fr)
@@ -498,7 +546,7 @@ mod tests {
 
     #[test]
     fn test_derive_randomess() {
-        let mut vk_file = File::open("src/test_data/cubic.vk").unwrap_or_else(|e| {
+        let mut vk_file = File::open("src/test_data/cubic/cubic.vk").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
     
@@ -506,12 +554,12 @@ mod tests {
         vk_file.read_to_end(&mut buf).unwrap();
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
 
-        let mut proof_file = File::open("src/test_data/cubic_uncompressed.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/cubic/cubic_compressed.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut buf = vec![];
         proof_file.read_to_end(&mut buf).unwrap();
-        let proof = Proof::from_uncompressed_gnark_bytes(&buf).unwrap();
+        let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
 
         let mut transcript = Transcript::new(
             Box::new(Sha256::new()),
@@ -522,10 +570,10 @@ mod tests {
 
         bind_public_data(&mut transcript, "gamma", &vk, public_inputs).unwrap();
         let gamma = derive_randomness(&mut transcript, "gamma", Some(vec![proof.lro[0], proof.lro[1], proof.lro[2]])).unwrap();
-        assert_eq!("13175412526922964177080897496541576850519188848052084205935292988061649913666", gamma.to_string());
+        assert_eq!("13705172354636085904875144654410498891411589938071787668402876935436031928286", gamma.to_string());
 
         let beta = derive_randomness(&mut transcript, "beta", None).unwrap();
-        assert_eq!("4757834056648670749114983047853294034164989321973894378345768017701699151115", beta.to_string());
+        assert_eq!("502094640838906301389960030054321793321596228809244953660330047874664680226", beta.to_string());
 
         let mut alpha_deps: Vec<G1Affine> = Vec::with_capacity(proof.bsb22_commitments.len()+1);
         for i in 0..proof.bsb22_commitments.len() {
@@ -533,16 +581,16 @@ mod tests {
         }
         alpha_deps.push(proof.z);
         let alpha = derive_randomness(&mut transcript, "alpha", Some(alpha_deps)).unwrap();
-        assert_eq!("2641563643757307952281786817189485924276511397256432725904865976110150806673", alpha.to_string());
+        assert_eq!("2836954317178053921774550760313570552348377351550765650432083429178725888741", alpha.to_string());
 
         let zeta = derive_randomness(&mut transcript, "zeta",Some(vec![proof.h[0], proof.h[1],  proof.h[2]])).unwrap();
-        assert_eq!("428996195638157125664800467491845848268572530814052950149558609155640812651", zeta.to_string());
+        assert_eq!("15802285496528275891841759887321678994127603663567429848560933560816697252136", zeta.to_string());
     }
 
 
     #[test]
     fn test_verify_cubic_compressed_proof_pass() {
-        let mut vk_file = File::open("src/test_data/cubic.vk").unwrap_or_else(|e| {
+        let mut vk_file = File::open("src/test_data/cubic/cubic.vk").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
     
@@ -550,14 +598,14 @@ mod tests {
         vk_file.read_to_end(&mut buf).unwrap();
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
 
-        let mut proof_file = File::open("src/test_data/cubic.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/cubic/cubic_compressed.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut buf = vec![];
         proof_file.read_to_end(&mut buf).unwrap();
         let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
 
-        let mut wit_file = File::open("src/test_data/cubic.wtns").unwrap_or_else(|e| {
+        let mut wit_file = File::open("src/test_data/cubic/cubic.wtns").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut buf = vec![];
@@ -565,46 +613,22 @@ mod tests {
         let public_witness = PublicWitness::from_gnark_bytes(&buf).unwrap();
    
 
-        let result = verify(&vk, &proof, &public_witness).unwrap();
-        assert_eq!(true, result);
-    }
-
-
-    #[test]
-    #[should_panic(expected = "claimed_quotient_eval != linearized_polynomial_zeta_eval")]
-    fn test_verify_cubic_compressed_proof_fail() {
-        let mut vk_file = File::open("src/test_data/cubic.vk").unwrap_or_else(|e| {
-            panic!("open file error: {}", e);
-        });
-    
-        let mut buf = vec![];
-        vk_file.read_to_end(&mut buf).unwrap();
-        let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
-
-        let mut proof_file = File::open("src/test_data/cubic.proof").unwrap_or_else(|e| {
-            panic!("open file error: {}", e);
-        });
-        let mut buf = vec![];
-        proof_file.read_to_end(&mut buf).unwrap();
-        let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
-        let public_inputs = vec![Fr::from(36)];  //ERROR here, SHOULD BE 35
-
-        let result = verify(&vk, &proof, &public_inputs).unwrap();
+        let result = verify(&vk, &proof, &public_witness, true).unwrap();
         assert_eq!(true, result);
     }
 
 
     #[test]
     fn test_verify_cubic_uncompressed_proof_pass() {
-        let mut vk_file = File::open("src/test_data/cubic.vk").unwrap_or_else(|e| {
+        let mut vk_file = File::open("src/test_data/cubic/cubic.vk").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
     
         let mut buf = vec![];
         vk_file.read_to_end(&mut buf).unwrap();
-    
         let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
-        let mut proof_file = File::open("src/test_data/cubic_uncompressed.proof").unwrap_or_else(|e| {
+
+        let mut proof_file = File::open("src/test_data/cubic/cubic_uncompressed.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
 
@@ -613,7 +637,147 @@ mod tests {
         let proof = Proof::from_uncompressed_gnark_bytes(&buf).unwrap();
         let public_inputs = vec![Fr::from(35)];
 
-        let result = verify( &vk,  &proof,&public_inputs).unwrap();
+        let result = verify( &vk, &proof, &public_inputs, false).unwrap();
+        assert_eq!(true, result);
+    }
+
+    #[test]
+    #[should_panic(expected = "algebraic relation does not hold")]
+    fn test_verify_cubic_compressed_proof_fail() {
+        let mut vk_file = File::open("src/test_data/cubic/cubic.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+    
+        let mut buf = vec![];
+        vk_file.read_to_end(&mut buf).unwrap();
+        let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+
+        let mut proof_file = File::open("src/test_data/cubic/cubic_compressed.proof").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        proof_file.read_to_end(&mut buf).unwrap();
+        let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
+        let public_inputs = vec![Fr::from(36)];
+
+        let result = verify(&vk, &proof,&public_inputs, true).unwrap();
+        assert_eq!(true, result);
+    }
+
+    #[test]
+    fn test_verify_hasher_compressed_proof_pass() {
+        let mut vk_file = File::open("src/test_data/hasher/hasher.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+    
+        let mut buf = vec![];
+        vk_file.read_to_end(&mut buf).unwrap();
+        let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+
+        let mut proof_file = File::open("src/test_data/hasher/hasher_compressed.proof").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        proof_file.read_to_end(&mut buf).unwrap();
+        let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
+
+        let mut wit_file = File::open("src/test_data/hasher/hasher.wtns").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        wit_file.read_to_end(&mut buf).unwrap();
+        let public_witness = PublicWitness::from_gnark_bytes(&buf).unwrap();
+   
+
+        let result = verify( &vk, &proof,  &public_witness, true).unwrap();
+        assert_eq!(true, result);
+    }
+
+    #[test]
+    fn test_verify_hasher_uncompressed_proof_pass() {
+        let mut vk_file = File::open("src/test_data/hasher/hasher.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+    
+        let mut buf = vec![];
+        vk_file.read_to_end(&mut buf).unwrap();
+        let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+
+        let mut proof_file = File::open("src/test_data/hasher/hasher_uncompressed.proof").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        proof_file.read_to_end(&mut buf).unwrap();
+        let proof = Proof::from_uncompressed_gnark_bytes(&buf).unwrap();
+
+        let mut wit_file = File::open("src/test_data/hasher/hasher.wtns").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        wit_file.read_to_end(&mut buf).unwrap();
+        let public_witness = PublicWitness::from_gnark_bytes(&buf).unwrap();
+   
+
+        let result = verify( &vk, &proof, &public_witness, false).unwrap();
+        assert_eq!(true, result);
+    }
+
+
+    #[test]
+    fn test_verify_mimc_compressed_proof_pass() {
+        let mut vk_file = File::open("src/test_data/mimc/mimc.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+    
+        let mut buf = vec![];
+        vk_file.read_to_end(&mut buf).unwrap();
+        let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+
+        let mut proof_file = File::open("src/test_data/mimc/mimc_compressed.proof").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        proof_file.read_to_end(&mut buf).unwrap();
+        let proof = Proof::from_compressed_gnark_bytes(&buf).unwrap();
+
+        let mut wit_file = File::open("src/test_data/mimc/mimc.wtns").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        wit_file.read_to_end(&mut buf).unwrap();
+        let public_witness = PublicWitness::from_gnark_bytes(&buf).unwrap();
+   
+
+        let result = verify( &vk, &proof, &public_witness, true).unwrap();
+        assert_eq!(true, result);
+    }
+
+    #[test]
+    fn test_verify_mimc_uncompressed_proof_pass() {
+        let mut vk_file = File::open("src/test_data/mimc/mimc.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+    
+        let mut buf = vec![];
+        vk_file.read_to_end(&mut buf).unwrap();
+        let vk = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+
+        let mut proof_file = File::open("src/test_data/mimc/mimc_uncompressed.proof").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        proof_file.read_to_end(&mut buf).unwrap();
+        let proof = Proof::from_uncompressed_gnark_bytes(&buf).unwrap();
+
+        let mut wit_file = File::open("src/test_data/mimc/mimc.wtns").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut buf = vec![];
+        wit_file.read_to_end(&mut buf).unwrap();
+        let public_witness = PublicWitness::from_gnark_bytes(&buf).unwrap();
+   
+
+        let result = verify(&vk, &proof, &public_witness, false).unwrap();
         assert_eq!(true, result);
     }
 
