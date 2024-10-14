@@ -38,7 +38,7 @@ thre are 2 types proof
 - uncompressed, where g1 points are uncompressed, it is the result of proof.MarshalSolidity()
 
 ## gnark version
-This repo is based on ganrk v0.9.1.
+This repo is based on ganrk v0.11.0.
 
 
 # How to run locally 
