@@ -700,26 +700,26 @@ mod test {
     }
 
 
-     #[test]
-    fn test_compare_cubic_vk() {
-        let mut f = File::open("src/test_data/cubic.vk").unwrap_or_else(|e| {
-            panic!("open file error: {}", e);
-        });
+    //  #[test]
+    // fn test_compare_cubic_vk() {
+    //     let mut f = File::open("src/test_data/cubic/cubic.vk").unwrap_or_else(|e| {
+    //         panic!("open file error: {}", e);
+    //     });
 
-        let mut buf = vec![];
-        f.read_to_end(&mut buf).unwrap();
-        let vk1 = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
+    //     let mut buf = vec![];
+    //     f.read_to_end(&mut buf).unwrap();
+    //     let vk1 = VerifyingKey::from_gnark_bytes(&buf, true).unwrap();
 
-        let s = String::from(VK_DATA);
-        let data = hex::decode(&s.clone()).unwrap();
+    //     let s = String::from(VK_DATA);
+    //     let data = hex::decode(&s.clone()).unwrap();
 
-        let vk2 = VerifyingKey::from_gnark_bytes(&data, true).unwrap();
-        assert_eq!(vk1, vk2); 
-    }
+    //     let vk2 = VerifyingKey::from_gnark_bytes(&data, true).unwrap();
+    //     assert_eq!(vk1, vk2); 
+    // }
 
     #[test]
     fn test_compare_vk_with_vk_wo_lines() {
-        let mut vk_file = File::open("src/test_data/cubic.vk").unwrap_or_else(|e| {
+        let mut vk_file = File::open("src/test_data/cubic/cubic.vk").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
     

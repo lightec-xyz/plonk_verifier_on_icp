@@ -1,4 +1,4 @@
-use ic_cdk::{update, query};
+use ic_cdk::query;
 
 mod fr;
 mod point;
@@ -35,7 +35,7 @@ fn verify(vk_bytes:Vec<u8>, proof_bytes: Vec<u8>, wit_bytes:Vec<u8>, vk_has_line
         }
     };
 
-    let result = match verifier::verify(&vk, &proof, &wit){
+    let result = match verifier::verify(&vk, &proof, &wit, true){
         Ok(result ) => result,
         Err(err) => {
         ic_cdk::eprintln!("Failed to verify proof: {}", err);
@@ -97,11 +97,11 @@ mod tests {
     use super::*;
     use std::fs::File;
     use std::io::Read;
-    use ark_serialize::Write;
+
 
     #[test]
     fn test_verify_cubic() {
-        let mut vk_file = File::open("../../examples/cubic/test_data/cubic.vk").unwrap_or_else(|e| {
+        let mut vk_file = File::open("src/test_data/cubic/cubic.vk").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
 
@@ -115,7 +115,7 @@ mod tests {
 
 
 
-        let mut proof_file = File::open("../../examples/cubic/test_data/cubic.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/cubic/cubic_compressed.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut proof_bytes = vec![];
@@ -124,7 +124,7 @@ mod tests {
         println!("proof_hex: {:?}", proof_hex.clone());
    
 
-        let mut wit_file = File::open("../../examples/cubic/test_data/cubic.wtns").unwrap_or_else(|e| {
+        let mut wit_file = File::open("src/test_data/cubic/cubic.wtns").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut wit_bytes = vec![];
@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_verify_hasher() {
-        let mut vk_file = File::open("../../examples/hasher/test_data/hasher.vk").unwrap_or_else(|e| {
+        let mut vk_file = File::open("src/test_data/hasher/hasher.vk").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
 
@@ -160,9 +160,7 @@ mod tests {
         println!("vk_hex: {:?}", vk_hex.clone());
         println!("vk_hex_wo_lines: {:?}", vk_hex_wo_lines.clone());
 
-
-
-        let mut proof_file = File::open("../../examples/hasher/test_data/hasher.proof").unwrap_or_else(|e| {
+        let mut proof_file = File::open("src/test_data/hasher/hasher_compressed.proof").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut proof_bytes = vec![];
@@ -170,8 +168,52 @@ mod tests {
         let proof_hex = hex::encode(&proof_bytes);
         println!("proof_hex: {:?}", proof_hex.clone());
    
+        let mut wit_file = File::open("src/test_data/hasher/hasher.wtns").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut wit_bytes = vec![];
+        wit_file.read_to_end(&mut wit_bytes).unwrap();
+        let wit_hex = hex::encode(&wit_bytes);
+        println!("wit_hex: {:?}", wit_hex.clone());
 
-        let mut wit_file = File::open("../../examples/hasher/test_data/hasher.wtns").unwrap_or_else(|e| {
+        let result = verify_bytes(vk_bytes, proof_bytes.clone(), wit_bytes.clone(), true);
+        assert_eq!(true, result);
+
+        let result = verify_bytes(vk_bytes_wo_lines, proof_bytes, wit_bytes, false); 
+        assert_eq!(true, result);
+
+        let result = verify_hex(vk_hex, proof_hex.clone(), wit_hex.clone(), true);
+        assert_eq!(true, result);
+
+        let result = verify_hex(vk_hex_wo_lines, proof_hex, wit_hex, false);
+        assert_eq!(true, result);
+
+    }
+
+
+    #[test]
+    fn test_verify_mimc() {
+        let mut vk_file = File::open("src/test_data/mimc/mimc.vk").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+
+        let mut vk_bytes = vec![];
+        vk_file.read_to_end(&mut vk_bytes).unwrap();
+        let vk_bytes_wo_lines = vk::VerifyingKey::to_gnark_bytes_wo_lines(&vk_bytes, true).unwrap();
+        let vk_hex = hex::encode(&vk_bytes);
+        let vk_hex_wo_lines = hex::encode(&vk_bytes_wo_lines);
+        println!("vk_hex: {:?}", vk_hex.clone());
+        println!("vk_hex_wo_lines: {:?}", vk_hex_wo_lines.clone());
+
+        let mut proof_file = File::open("src/test_data/mimc/mimc_compressed.proof").unwrap_or_else(|e| {
+            panic!("open file error: {}", e);
+        });
+        let mut proof_bytes = vec![];
+        proof_file.read_to_end(&mut proof_bytes).unwrap();
+        let proof_hex = hex::encode(&proof_bytes);
+        println!("proof_hex: {:?}", proof_hex.clone());
+   
+        let mut wit_file = File::open("src/test_data/mimc/mimc.wtns").unwrap_or_else(|e| {
             panic!("open file error: {}", e);
         });
         let mut wit_bytes = vec![];
@@ -194,13 +236,13 @@ mod tests {
     }
 
     #[test]
-    fn test_compare_compressed_uncompressed_gnark_proof_from_file_1() {
-        let mut compressed_file = File::open("../../examples/cubic/test_data/cubic.proof").unwrap();
+    fn test_compare_cubic_compressed_uncompressed_gnark_proof() {
+        let mut compressed_file = File::open("src/test_data/hasher/hasher_compressed.proof").unwrap();
         let mut compressed_data = Vec::new();
         compressed_file.read_to_end(&mut compressed_data).unwrap();
         let compressed_proof = proof::Proof::from_compressed_gnark_bytes(&compressed_data).unwrap();
 
-        let mut uncompressed_file = File::open("../../examples/cubic/test_data/cubic_uncompressed.proof").unwrap();
+        let mut uncompressed_file = File::open("src/test_data/hasher/hasher_uncompressed.proof").unwrap();
         let mut uncompressed_data = Vec::new();
         uncompressed_file.read_to_end(&mut uncompressed_data).unwrap();
         let uncompressed_proof = proof::Proof::from_uncompressed_gnark_bytes(&uncompressed_data).unwrap();
