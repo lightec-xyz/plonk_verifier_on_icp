@@ -121,7 +121,7 @@ func buildProof(name string, saveFiles bool) ([]byte, []byte, []byte) {
 		defer fvk.Close()
 		vk.WriteTo(fvk)
 		//compressed proof
-		fproof, err := os.Create(filepath.Join(dataDir, fmt.Sprintf("%s.proof", name)))
+		fproof, err := os.Create(filepath.Join(dataDir, fmt.Sprintf("%s_compressed.proof", name)))
 		if err != nil {
 			panic(err)
 		}

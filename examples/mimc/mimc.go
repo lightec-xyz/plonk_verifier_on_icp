@@ -18,6 +18,9 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/consensys/gnark-crypto/ecc"
 	native_plonk "github.com/consensys/gnark/backend/plonk"
 	plonk_bn254 "github.com/consensys/gnark/backend/plonk/bn254"
@@ -25,8 +28,6 @@ import (
 	"github.com/consensys/gnark/frontend/cs/scs"
 	"github.com/consensys/gnark/std/hash/mimc"
 	"github.com/consensys/gnark/test/unsafekzg"
-	"os"
-	"path/filepath"
 )
 
 var dataDir = "./test_data"

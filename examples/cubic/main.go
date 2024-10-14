@@ -40,7 +40,7 @@ func main() {
 
 	principal := principal.MustDecode(*canister)
 
-	vkBytes, proofBytes, witBytes := buildProof("cubic", true)
+	vkBytes, proofBytes, witBytes := buildProof("cubic", false)
 	var result bool
 	err = a.Query(principal, "verify_bytes", []any{vkBytes, proofBytes, witBytes, true}, []any{&result})
 	if err != nil {
