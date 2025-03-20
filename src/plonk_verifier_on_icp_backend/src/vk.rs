@@ -110,13 +110,13 @@ impl PartialEq for LineEvaluationAff {
 
 impl VerifyingKey {
     /*  
-        have_lines= true, if this vk has lines
-        have_lines= false, if this vk does not have lines. 
+        has_lines= true, if this vk has lines
+        has_lines= false, if this vk does not have lines. 
         lines are not necessary for verify, normally gnark will output a vk with lines, which is 32768 bytes.
         remove the lines for vk reside in canister for saving cycles.
      */
 
-    pub fn from_gnark_bytes(data: &[u8], have_lines : bool) -> Result<Self, Box<dyn Error>> {
+    pub fn from_gnark_bytes(data: &[u8], has_lines : bool) -> Result<Self, Box<dyn Error>> {
         let mut reader = data; // Using slice directly
 
         let mut size_bytes = [0u8; 8];
@@ -188,7 +188,7 @@ impl VerifyingKey {
         reader.read_exact(&mut kzg_g2_1_bytes)?;
         let kzg_g2_1 = gnark_compressed_x_to_g2_point(&kzg_g2_1_bytes)?;
 
-        if have_lines{
+        if has_lines{
             //decode lines
             for i in 0..2 {
                 for j in 0..2 {
@@ -214,14 +214,14 @@ impl VerifyingKey {
 
         let mut kzg_lines: [[[LineEvaluationAff; LOOP_COUNTER_SIZE]; 2]; 2] =
             [[[LineEvaluationAff::default(); LOOP_COUNTER_SIZE]; 2]; 2];
-        if have_lines{    
+        if has_lines{    
             //decode lines
             for i in 0..2 {
                 for j in 0..2 {
                     for k in 0..LOOP_COUNTER_SIZE {
-                        let evl =
+                        let eval =
                             LineEvaluationAff::from_gnark_bytes(&kzg_lines_bytes[i][j][k])?;
-                        kzg_lines[i][j][k] = evl;
+                        kzg_lines[i][j][k] = eval;
                     }
                 }
             }
@@ -238,7 +238,7 @@ impl VerifyingKey {
             lines: None,
         };
 
-        if have_lines{
+        if has_lines{
             kzg_verifying_key.lines = Some(kzg_lines);
         }
 
@@ -262,7 +262,7 @@ impl VerifyingKey {
     }
 
     //to_gnark_bytes_wo_lines, return vk without lines, remove lines for saving gas 
-    pub fn to_gnark_bytes_wo_lines(data: &[u8], have_lines : bool) -> Result<Vec<u8>, Box<dyn Error>> {
+    pub fn to_gnark_bytes_wo_lines(data: &[u8], has_lines : bool) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut qcp_len_bytes = [0u8;4];
         qcp_len_bytes.copy_from_slice(&data[QCP_LEN_START_INDEX..QCP_LEN_END_INDEX]);
         let qcp_len = u32::from_be_bytes(qcp_len_bytes);
@@ -270,7 +270,7 @@ impl VerifyingKey {
 
         let kzg_line_start_index = QCP_LEN_START_INDEX + total_qcp_len as usize + 160;
         let mut kzg_line_end_index = kzg_line_start_index;
-        if have_lines{
+        if has_lines{
             kzg_line_end_index = kzg_line_start_index + 128*4*LOOP_COUNTER_SIZE;
         };
 

@@ -5,9 +5,9 @@ use crate::fr::*;
 
 pub struct PublicWitness{}
 /*
-    in gnark@BN254, witness is composited as the flollowing
+    in gnark@BN254, witness is composed as the following:
     | number of public |  4 bytes  |
-    | number of sceret |  4 bytes  |
+    | number of secret |  4 bytes  |
     | number of vector |  4 bytes  |
     | vector of fr     |  32 bytes for each |
 */
@@ -28,10 +28,10 @@ impl PublicWitness {
         reader.read_exact(&mut vector_len_bytes)?;
         let vector_len = u32::from_be_bytes(vector_len_bytes);
         if public_len != vector_len {
-            return Err("public_len != vector_len".into());
+            return Err(format!("public_len ({}) != vector_len ({})", public_len, vector_len).into());
         }
 
-        let mut witnesses = Vec::with_capacity(vector_len as usize);
+        let mut witnesses = Vec::with_capacity(vector_len as usize); //preallocate vector space
         for _i in 0..(vector_len as usize) {
             let mut v_bytes = [0u8; 32];
             reader.read_exact(&mut v_bytes)?;

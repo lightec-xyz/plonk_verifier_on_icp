@@ -117,7 +117,7 @@ pub fn verify(vk:&VerifyingKey, proof:&Proof, public_witness:&[Fr], proof_is_fro
 
     for i in 0..vk.commit_constraint_indexes.len() {
         let mut hasher = HashToField::new(b"BSB22-Plonk");
-        let bytes = ark_g1_to_gnark_unompressed_bytes(&proof.bsb22_commitments[i])?;
+        let bytes = ark_g1_to_gnark_uncompressed_bytes(&proof.bsb22_commitments[i])?;
         hasher.write(&bytes)?;
         let hash_bytes = hasher.sum();
         hasher.reset();
@@ -237,18 +237,18 @@ fn bind_public_data(
     vk: &VerifyingKey,
     public_inputs: Vec<Fr>,
 ) -> Result<(), Box<dyn Error>> {
-    let s0_bytes = ark_g1_to_gnark_unompressed_bytes(&vk.s[0])?;
-    let s1_bytes = ark_g1_to_gnark_unompressed_bytes(&vk.s[1])?;
-    let s2_bytes = ark_g1_to_gnark_unompressed_bytes(&vk.s[2])?;
-    let ql_bytes = ark_g1_to_gnark_unompressed_bytes(&vk.ql)?;
-    let qr_bytes = ark_g1_to_gnark_unompressed_bytes(&vk.qr)?;
-    let qm_bytes = ark_g1_to_gnark_unompressed_bytes(&vk.qm)?;
-    let qo_bytes = ark_g1_to_gnark_unompressed_bytes(&vk.qo)?;
-    let qk_bytes = ark_g1_to_gnark_unompressed_bytes(&vk.qk)?;
+    let s0_bytes = ark_g1_to_gnark_uncompressed_bytes(&vk.s[0])?;
+    let s1_bytes = ark_g1_to_gnark_uncompressed_bytes(&vk.s[1])?;
+    let s2_bytes = ark_g1_to_gnark_uncompressed_bytes(&vk.s[2])?;
+    let ql_bytes = ark_g1_to_gnark_uncompressed_bytes(&vk.ql)?;
+    let qr_bytes = ark_g1_to_gnark_uncompressed_bytes(&vk.qr)?;
+    let qm_bytes = ark_g1_to_gnark_uncompressed_bytes(&vk.qm)?;
+    let qo_bytes = ark_g1_to_gnark_uncompressed_bytes(&vk.qo)?;
+    let qk_bytes = ark_g1_to_gnark_uncompressed_bytes(&vk.qk)?;
 
     let mut qcp_bytes: Vec<Vec<u8>> = Vec::with_capacity(vk.qcp.len());
     for qcp in &vk.qcp {
-        let bytes = ark_g1_to_gnark_unompressed_bytes(qcp)?;
+        let bytes = ark_g1_to_gnark_uncompressed_bytes(qcp)?;
         qcp_bytes.push(bytes);
     }
 
@@ -285,7 +285,7 @@ pub fn derive_randomness(
 ) -> Result<Fr, Box<dyn Error>> {
     if let Some(points_vec) = points {
         for p in points_vec {
-            let bytes = ark_g1_to_gnark_unompressed_bytes(&p)?;
+            let bytes = ark_g1_to_gnark_uncompressed_bytes(&p)?;
             transcript.bind(challenge, &bytes)?;
         }
     };
@@ -318,11 +318,11 @@ pub fn fold_proof(digests: &[G1Affine], batch_opening_proof: &BatchOpeningProof,
         gammas.push(gammas[i-1].mul(&gamma));
     };
 
-    let (folded_digest, foled_eval) = kzg_fold(digests, &batch_opening_proof.claimed_values, &gammas)?;
+    let (folded_digest, folded_eval) = kzg_fold(digests, &batch_opening_proof.claimed_values, &gammas)?;
 
     let res = OpeningProof {
         h: batch_opening_proof.h,
-        claimed_value: foled_eval
+        claimed_value: folded_eval
     };
 
     Ok((res, folded_digest))
@@ -342,16 +342,16 @@ pub fn kzg_fold(digests :&[G1Affine], fai:&[Fr], ci :&[Fr]) -> Result<(G1Affine,
     };
 
     // fold the claimed values ∑ᵢcᵢf(aᵢ)
-    let mut foled_eval = Fr::zero();
+    let mut folded_eval = Fr::zero();
     for i in 0..nb_digests {
         let tmp = fai[i].mul(&ci[i]);
-        foled_eval = foled_eval.add(&tmp);
+        folded_eval = folded_eval.add(&tmp);
     };
 
     // fold the digests ∑ᵢ[cᵢ]([fᵢ(α)]G₁)
     let folded_digest = G1Projective::msm(digests, ci).unwrap().into_affine();
 
-    Ok((folded_digest, foled_eval))    
+    Ok((folded_digest, folded_eval))    
 }
 
 // Verify verifies a KZG opening proof at a single point
@@ -393,7 +393,7 @@ pub fn kzg_derive_gamma(fr : Fr, digests: &[G1Affine], claimed_values : &[Fr], d
     transcript.bind("gamma", &bytes)?;
 
     for d in digests {
-        let bytes = ark_g1_to_gnark_unompressed_bytes(d)?;
+        let bytes = ark_g1_to_gnark_uncompressed_bytes(d)?;
         transcript.bind("gamma", &bytes)?;
     };
 

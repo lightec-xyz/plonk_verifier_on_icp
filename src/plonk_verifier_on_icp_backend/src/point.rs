@@ -31,7 +31,7 @@ const ARK_COMPRESSED_INFINITY: u8 = 0b01 << 6;
     uncompressed bytes =  x big-endian bytes | y big endian bytes
 
     In arkworks, G1Affine
-    compressed bytes i  little-endian,
+    compressed bytes is  little-endian,
     MSB byte:
     bit7 = 0 : y<-y
     bit7 = 1 : y > -y
@@ -53,7 +53,7 @@ fn gnark_flag_to_ark_flag(msb: u8) -> u8 {
 }
 
 //convert big-endian gnark compressed x bytes to litte-endian ark compressed x for g1 and g2 point
-pub fn ganrk_commpressed_x_to_ark_commpressed_x(x: &Vec<u8>) -> Vec<u8> {
+pub fn gnark_compressed_x_to_ark_compressed_x(x: &Vec<u8>) -> Vec<u8> {
     if x.len() != 32 && x.len() != 64 {
         panic!("Invalid x length: {}", x.len());
     }
@@ -71,7 +71,7 @@ pub fn ganrk_commpressed_x_to_ark_commpressed_x(x: &Vec<u8>) -> Vec<u8> {
 // gnark uncompressed | x bytes in be | y bytes in be | (097c8a80aeec562a6b4abc29a019eec113192cb6c84f59beda5ddf3ce9c78ed8 0053bdf2cd5794fcc2b27919f84908cffcc0a897b32dce1324fc9ef61c26a206)
 // Note: in ark works, a negative flag is tagged if y is negative, this flag is not exist in gnark.
 // in production, use only 1 mthod 
-pub fn ark_g1_to_gnark_unompressed_bytes(point: &G1Affine) -> Result<Vec<u8>, Box<dyn Error>> {
+pub fn ark_g1_to_gnark_uncompressed_bytes(point: &G1Affine) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut bytes = vec![];
     
     let x_bytes = point.x().unwrap().into_bigint().to_bytes_be();
@@ -155,7 +155,7 @@ pub fn gnark_compressed_x_to_g2_point(buf: &[u8]) -> Result<G2Affine, Box<dyn Er
         return Err(SerializationError::InvalidData.into());
     };
 
-    let bytes = ganrk_commpressed_x_to_ark_commpressed_x(&buf.to_vec());
+    let bytes = gnark_compressed_x_to_ark_compressed_x(&buf.to_vec());
     let p = G2Affine::deserialize_compressed::<&[u8]>(&bytes)?;
     Ok(p)
 }
@@ -246,7 +246,7 @@ mod test {
     }
 
     #[test]
-    fn test_ganrk_flag_to_ark_flag() {
+    fn test_gnark_flag_to_ark_flag() {
         let b: u8 = 255;
 
         let gnark_positive = b & !GNARK_MASK | GNARK_COMPRESSED_POSTIVE;
@@ -273,17 +273,17 @@ mod test {
     fn test_gnark_flag_to_ark_flag_panic() {
         let b: u8 = 255;
 
-        let ganrk_invalid = b & !GNARK_MASK;
-        gnark_flag_to_ark_flag(ganrk_invalid);
+        let gnark_invalid = b & !GNARK_MASK;
+        gnark_flag_to_ark_flag(gnark_invalid);
     }
 
     #[test]
     fn test_g1point_gnark_compressed_x_to_ark_compressed_x() {
         {
             let xs = String::from("897c8a80aeec562a6b4abc29a019eec113192cb6c84f59beda5ddf3ce9c78ed8");
-            let ganrk_x_bytes_vec = hex::decode(&xs).unwrap();
+            let gnark_x_bytes_vec = hex::decode(&xs).unwrap();
 
-            let ark_x_bytes_vec = ganrk_commpressed_x_to_ark_commpressed_x(&ganrk_x_bytes_vec);
+            let ark_x_bytes_vec = gnark_compressed_x_to_ark_compressed_x(&gnark_x_bytes_vec);
             assert_eq!(
                 "d88ec7e93cdf5ddabe594fc8b62c1913c1ee19a029bc4a6b2a56ecae808a7c09",
                 hex::encode(ark_x_bytes_vec.clone())
@@ -301,9 +301,9 @@ mod test {
 
         {
             let xs = String::from("d934a10bcf7f1b4a365e8be1c1063fe8f919f03021c2ffe4f80b29267ec93e5b");
-            let ganrk_x_bytes_vec = hex::decode(&xs).unwrap();
+            let gnark_x_bytes_vec = hex::decode(&xs).unwrap();
 
-            let ark_x_bytes_vec = ganrk_commpressed_x_to_ark_commpressed_x(&ganrk_x_bytes_vec);
+            let ark_x_bytes_vec = gnark_compressed_x_to_ark_compressed_x(&gnark_x_bytes_vec);
             assert_eq!(
                 "5b3ec97e26290bf8e4ffc22130f019f9e83f06c1e18b5e364a1b7fcf0ba13499",
                 hex::encode(ark_x_bytes_vec.clone())
@@ -326,9 +326,9 @@ mod test {
         //bn254 g2 generator
         //998e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c21800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed, x:10857046999023057135944570762232829481370756359578518086990519993285655852781+11559732032986387107991004021392285783925812861821192530917403151452391805634*u, y:8495653923123431417604973247489272438418190587263600148770280649306958101930+4082367875863433681332203403145435568316851327593401208105741076214120093531*u
         let xs = String::from("998e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c21800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed");
-        let ganrk_x_bytes_vec = hex::decode(&xs).unwrap();
+        let gnark_x_bytes_vec = hex::decode(&xs).unwrap();
 
-        let ark_x_bytes_vec = ganrk_commpressed_x_to_ark_commpressed_x(&ganrk_x_bytes_vec);
+        let ark_x_bytes_vec = gnark_compressed_x_to_ark_compressed_x(&gnark_x_bytes_vec);
         assert_eq!("edf692d95cbdde46ddda5ef7d422436779445c5e66006a42761e1f12efde0018c212f3aeb785e49712e7a9353349aaf1255dfb31b7bf60723a480d9293938e19", hex::encode(ark_x_bytes_vec.clone()));
 
         let p1 = G2Affine::deserialize_compressed::<&[u8]>(ark_x_bytes_vec.as_ref()).unwrap();
@@ -366,7 +366,7 @@ mod test {
     }
 
     
-    //"test_gnark_compressed_x_to_g1_point_to_gnark_uncompressed_bytes"  checks "ganrk compressed bytes"  -> "ark g1 point" -> "ganrk uncompressed bytes" 
+    //"test_gnark_compressed_x_to_g1_point_to_gnark_uncompressed_bytes"  checks "gnark compressed bytes"  -> "ark g1 point" -> "gnark uncompressed bytes" 
     #[test]
     fn test_gnark_compressed_x_to_g1_point_to_gnark_uncompressed_bytes() {
         let input :Vec<Vec<&str>> = vec![
@@ -1032,7 +1032,7 @@ mod test {
             uncompressed: String,
         }
 
-        let ganrk_points: Vec<GnarkPoint> = input
+        let gnark_points: Vec<GnarkPoint> = input
             .iter()
             .map(|vec| GnarkPoint {
                 compreesed_x: vec[0].to_string(),
@@ -1042,9 +1042,9 @@ mod test {
             })
             .collect();
 
-        for (_, point) in ganrk_points.iter().enumerate() {
-            let ganrk_x_bytes = hex::decode(&point.compreesed_x).unwrap();
-            let p = gnark_compressed_x_to_g1_point(&ganrk_x_bytes).unwrap();
+        for (_, point) in gnark_points.iter().enumerate() {
+            let gnark_x_bytes = hex::decode(&point.compreesed_x).unwrap();
+            let p = gnark_compressed_x_to_g1_point(&gnark_x_bytes).unwrap();
             let big_x = p.x().unwrap().into_bigint().to_string();
             let big_y = p.y().unwrap().into_bigint().to_string();
 
@@ -1060,7 +1060,7 @@ mod test {
             uncompressed.extend_from_slice(&hex_y);
             assert_eq!(point.uncompressed, hex::encode(uncompressed.clone()));
 
-            let uncompressed_ark = hex::encode(ark_g1_to_gnark_unompressed_bytes(&p).unwrap());
+            let uncompressed_ark = hex::encode(ark_g1_to_gnark_uncompressed_bytes(&p).unwrap());
             assert_eq!(uncompressed_ark, point.uncompressed);
 
 
