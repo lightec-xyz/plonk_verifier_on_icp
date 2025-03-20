@@ -48,11 +48,11 @@ impl Write for HashToField {
 
 fn hash_to_field(msg: &[u8], dst: &[u8], count: usize) -> Result<Vec<Fr>, Box<dyn Error>> {
     let len = BYTE_SIZE + 16;
-    let pseduo_random_bytes = expand_msg_xmd(msg, dst, len*count)?;
+    let pseudo_random_bytes = expand_msg_xmd(msg, dst, len*count)?;
 
     let mut res = Vec::with_capacity(count);
     for i in 0..count {
-       let fr = fr_from_gnark_bytes(&pseduo_random_bytes[i*len..(i+1)*len]);
+       let fr = fr_from_gnark_bytes(&pseudo_random_bytes[i*len..(i+1)*len]);
        res.push(fr);
     }
     Ok(res)    

@@ -110,11 +110,11 @@ impl Proof {
         let z_shifted_h_commit = gnark_compressed_x_to_g1_point(&z_shifted_h_bytes)?;
         let z_shifted_value = fr_from_gnark_bytes(&z_shifted_value_bytes);
 
-        let mut bs22_commits_len_bytes = [0u8; 4];
-        reader.read_exact(&mut bs22_commits_len_bytes)?;
-        let bs22_commits_len = u32::from_be_bytes(bs22_commits_len_bytes);
-        let mut bsb22_commits: Vec<G1Affine> = Vec::with_capacity(bs22_commits_len as usize);
-        for _i in 0..(bs22_commits_len as usize) {
+        let mut bsb22_commits_len_bytes = [0u8; 4];
+        reader.read_exact(&mut bsb22_commits_len_bytes)?;
+        let bsb22_commits_len = u32::from_be_bytes(bsb22_commits_len_bytes);
+        let mut bsb22_commits: Vec<G1Affine> = Vec::with_capacity(bsb22_commits_len as usize);
+        for _i in 0..(bsb22_commits_len as usize) {
             let mut v_bytes = [0u8; 32];
             reader.read_exact(&mut v_bytes)?;
             let v = gnark_compressed_x_to_g1_point(&v_bytes)?;
